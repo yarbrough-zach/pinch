@@ -19,3 +19,7 @@
   - Increase confidence of candidate alerts (a line in DQR).
   - Understanding how glitches affect pipelines.
 
+## Todo
+ - Talk to CBC and DetChar to schedule presentation on work.
+ 
+
