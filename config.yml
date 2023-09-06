@@ -1,19 +1,29 @@
 glitches:
-        gspy_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/O3glitches.csv" 
-        omic_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/omicron.csv"
+        gspy-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/O3glitches.csv" 
+        omic-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/omicron.csv"
 
 triggers:
         pipeline: "gstlal"
-        clean-trigger-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/CleanTriggerFiles"
-        dirty-trigger-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/DirtyTriggerFiles"
-        other-trigger-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/OtherTriggerFiles"
+        raw-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/TriggerFiles"
+        clean-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/CleanTriggerFiles"
+        dirty-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/DirtyTriggerFiles"
+        other-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/OtherTriggerFiles"
 plots:
         plots-dir: "./plots"
 
-worklow:
-        omicron-snr-cutoff: 6
-        percentile-cutoff: 99
-        machine-learning-cut: False
-        machine-learning-cat: False
-        temp-dir: "./temp"
-        tag: gstlal_01
+
+workflow:
+        trigger-finding:
+                omicron-snr-cutoff: 6
+        cutoff:
+                number-binsX: 200
+                number-binsY: 200
+                percentile-cutoff: 99
+                machine-learning-cutoff: False
+        categorization:
+                machine-learning-cat: False
+        other:
+                temp-dir: "./temp"
+                log-dir: "./logs"
+                log: True
+                tag: "gstlal_01"
