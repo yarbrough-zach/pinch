@@ -1,0 +1,17 @@
+glitches:
+        gspy_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/O3glitches.csv" 
+        omic_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/omicron.csv"
+
+triggers:
+        pipeline: "gstlal"
+        clean_trigger_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/CleanTriggerFiles"
+        dirty_trigger_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/DirtyTriggerFiles"
+
+plots:
+        plots-dir: "./plots"
+
+worklow:
+        omicron-snr-cutoff: 6
+        percentile-cutoff: 99
+        machine-learning-cut: False
+        machine-learning-cat: False
