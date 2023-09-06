@@ -4,9 +4,9 @@ glitches:
 
 triggers:
         pipeline: "gstlal"
-        clean_trigger_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/CleanTriggerFiles"
-        dirty_trigger_file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/DirtyTriggerFiles"
-
+        clean-trigger-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/CleanTriggerFiles"
+        dirty-trigger-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/DirtyTriggerFiles"
+        other-trigger-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/OtherTriggerFiles"
 plots:
         plots-dir: "./plots"
 
@@ -15,3 +15,5 @@ worklow:
         percentile-cutoff: 99
         machine-learning-cut: False
         machine-learning-cat: False
+        temp-dir: "./temp"
+        tag: gstlal_01
