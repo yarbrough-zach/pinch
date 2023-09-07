@@ -119,6 +119,7 @@ clean_files = sorted([clean_trigger_dir + f for f in os.listdir(clean_trigger_di
 dirty_files = sorted([dirty_trigger_dir + f for f in os.listdir(dirty_trigger_dir) if f.endswith(".csv")])[:1]
 other_files = sorted([other_trigger_dir + f for f in os.listdir(other_trigger_dir) if f.endswith(".csv")])[:1]
 allFiles = clean_files + dirty_files + other_files
+
 if machine_learning_cutoff:
     log("Using Machine Learning for cutoff")
     
