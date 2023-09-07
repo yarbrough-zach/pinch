@@ -1,7 +1,11 @@
 .ipynb_checkpoints/
-.nfs0000000000ab93a000000720
-data/
-logs/
-old/
 **/.ipynb_checkpoints/
+.nfs0000000000ab93a000000720
+data/pycbc/*
+data/gstlal/*
+data/glitch/*
+logs/
+logs/*
 temp/
+old/
+
