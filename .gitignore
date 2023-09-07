@@ -1,0 +1,9 @@
+data/pycbc/*
+data/gstlal/*
+data/glitch/*
+logs/*
+temp/*
+.ipynb_checkpoints
+**/.ipynb_checkpoints/
+old
+
