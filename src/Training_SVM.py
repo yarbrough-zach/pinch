@@ -16,7 +16,7 @@ clean_files = ['CleanTriggerFiles/' + f for f in os.listdir('CleanTriggerFiles')
 set_dirty = None
 set_clean = None
 
-params = ['log_snr','log_chisqBysnrsq']#,'log_mtotal', 'log_bank_chisq', 'log_q', 'log_mass1', 'log_mass2', 'log_sigmasq', 'log_template_duration']
+params = ['log_snr','log_chisqBysnrsq', 'log_bankchisqBysnrsq']#,'log_mtotal', 'log_bank_chisq', 'log_q', 'log_mass1', 'log_mass2', 'log_sigmasq', 'log_template_duration']
 def formula(triggers, param):
     if param == 'log_mtotal':
         return np.log(triggers['mass1'] + triggers['mass2'])
@@ -26,6 +26,8 @@ def formula(triggers, param):
         return triggers['chisq']/triggers['snr']**2
     elif param == 'log_chisqBysnrsq':
         return np.log(triggers['chisq']/triggers['snr']**2)
+    elif param == 'log_bankchisqBysnrsq':
+        return np.log(triggers['bank_chisq']/triggers['snr']**2)
     elif param == 'log_q':
         return np.log(triggers['mass1']/triggers['mass2'])
     elif param == 'log_bank_chisq':
@@ -43,7 +45,7 @@ labels_clean = []
 print("Creating Clean Set")
 for file in clean_files:
     print(file)
-    triggers = pd.read_csv(file)
+    triggers = pd.read_csv(file, index_col = 0)
     for param in params:
         if param not in triggers.columns:
             triggers[param] = formula(triggers, param)
@@ -57,7 +59,7 @@ labels_dirty = []
 print("Creating Dirty Set")
 for file in dirty_files:
     print(file)
-    triggers = pd.read_csv(file)
+    triggers = pd.read_csv(file, index_col = 0)
     for param in params:
         if param not in triggers.columns:
             triggers[param] = formula(triggers, param)

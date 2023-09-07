@@ -16,10 +16,11 @@ workflow:
         trigger-finding:
                 omicron-snr-cutoff: 6
         cutoff:
-                number-binsX: 200
-                number-binsY: 200
+                number-bins: 200
+                cutoff-params: ['log_snr', 'log_chisqBysnrsq', 'log_bankchisqBysnrsq']
                 percentile-cutoff: 99
-                machine-learning-cutoff: False
+                machine-learning-cutoff: True
+                machine-learning-samples: 100000
         categorization:
                 machine-learning-cat: False
         other:

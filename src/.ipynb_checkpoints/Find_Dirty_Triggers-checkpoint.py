@@ -43,7 +43,9 @@ print("Loading workflow Configurations")
 omicron_snr_cutoff = config['workflow']['trigger-finding']['omicron-snr-cutoff']
 percentile_cutoff = config['workflow']['cutoff']['percentile-cutoff']
 machine_learning_cutoff = config['workflow']['cutoff']['machine-learning-cutoff']
+machine_learning_samples = config['workflow']['cutoff']['machine-learning-samples']
 machine_learning_cat = config['workflow']['categorization']['machine-learning-cat']
+
 temp_dir = config['workflow']['other']['temp-dir']
 log_dir = config['workflow']['other']['log-dir']
 tag = config['workflow']['other']['tag']
@@ -78,7 +80,7 @@ if not os.path.exists(temp_dir):
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-log("Starting Up")
+log("Starting Up Find_Dirty_Triggers.py")
 
 log("Sorting out Trigger Files")
 trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])
@@ -183,4 +185,4 @@ for trigger_file in trigger_files:
     triggers_dirty.to_csv(trigger_file.replace(raw_trigger_dir, dirty_trigger_dir))
     triggers_other.to_csv(trigger_file.replace(raw_trigger_dir, other_trigger_dir))
 
-log("Done!")
+log("Done with Find_Dirty_Triggers.py")

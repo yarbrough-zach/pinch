@@ -7,6 +7,9 @@ import pickle as pkl
 from scipy.stats import gaussian_kde
 import yaml
 import datetime
+from sklearn.svm import OneClassSVM
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
 def log(text):
     if log_q:
@@ -14,6 +17,31 @@ def log(text):
         print(date + " : " + text)
         with open(log_dir + tag + '.log', 'a') as f:
             f.write(date + " : " + text + "\n")
+
+def formula(triggers, param):
+    if param == 'log_mtotal':
+        return np.log(triggers['mass1'] + triggers['mass2'])
+    elif param == 'log_snr':
+        return np.log(triggers['snr'])
+    elif param == 'chisqBysnrsq':
+        return triggers['chisq']/triggers['snr']**2
+    elif param == 'log_chisqBysnrsq':
+        return np.log(triggers['chisq']/triggers['snr']**2)
+    elif param == 'log_bankchisqBysnrsq':
+        return np.log(triggers['bank_chisq']/triggers['snr']**2)
+    elif param == 'log_q':
+        return np.log(triggers['mass1']/triggers['mass2'])
+    elif param == 'log_bank_chisq':
+        return np.log(triggers['bank_chisq'])
+    elif param == 'log_sigmasq':
+        return np.log(triggers['sigmasq'])
+    elif param == 'log_template_duration':
+        return np.log(triggers['template_duration'])
+    elif param == 'log_mass1':
+        return np.log(triggers['mass1'])
+    elif param == 'log_mass2':
+        return np.log(triggers['mass2'])
+    
 # Ignoring some pandas warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 environ["GSTLAL_FIR_WHITEN"] = '0'
@@ -43,10 +71,11 @@ plots_dir = config['plots']['plots-dir']
 
 print("Loading workflow Configurations")
 omicron_snr_cutoff = config['workflow']['trigger-finding']['omicron-snr-cutoff']
-nBinsX = config['workflow']['cutoff']['number-binsX']
-nBinsY = config['workflow']['cutoff']['number-binsY']
+nBins = config['workflow']['cutoff']['number-bins']
 percentile_cutoff = config['workflow']['cutoff']['percentile-cutoff']
 machine_learning_cutoff = config['workflow']['cutoff']['machine-learning-cutoff']
+machine_learning_samples = config['workflow']['cutoff']['machine-learning-samples']
+cutoff_params = config['workflow']['cutoff']['cutoff-params']
 machine_learning_cat = config['workflow']['categorization']['machine-learning-cat']
 temp_dir = config['workflow']['other']['temp-dir']
 log_dir = config['workflow']['other']['log-dir']
@@ -82,111 +111,135 @@ if not os.path.exists(temp_dir):
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-log("Starting Up")
+log("Starting Up Compute_Cutoff_Statistic.py")
 
+log("Listing clean, dirty, and other trigger files")
+raw_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])
+clean_files = sorted([clean_trigger_dir + f for f in os.listdir(clean_trigger_dir) if f.endswith(".csv")])
+dirty_files = sorted([dirty_trigger_dir + f for f in os.listdir(dirty_trigger_dir) if f.endswith(".csv")])
+other_files = sorted([other_trigger_dir + f for f in os.listdir(other_trigger_dir) if f.endswith(".csv")])
+allFiles = clean_files + dirty_files + other_files
 if machine_learning_cutoff:
-    pass
-else:
-    log("Reading Glitch Files")
-    glitches = pd.read_csv(gspy_file)
-    glitches['glitch_id'] = glitches['id']
+    log("Using Machine Learning for cutoff")
     
-    log("Listing Raw Trigger Files for finding min and max")
-    # First we need to find the max and min of each bin space.
-    files = sorted([f for f in os.listdir(raw_trigger_dir) if f.endswith(".csv")])
+    log("Creating Clean Set")
+    nClean = int(machine_learning_samples/len(clean_files))
+    set_clean = None
+    for file in clean_files:
+        print(file)
+        triggers = pd.read_csv(file, index_col = 0)
+        for param in cutoff_params:
+            if param not in triggers.columns:
+                triggers[param] = formula(triggers, param)
+        if type(set_clean) == type(None):
+            set_clean = triggers[cutoff_params].sample(nClean).values
+        else:
+            set_clean = np.append(set_clean, triggers[cutoff_params].sample(nClean).values, axis = 0)
+    
+    log('Scaling data and fitting scaler')
+    scaler = StandardScaler()
+    scaled_clean = scaler.fit_transform(set_clean)
+    log("Training SVM")
+    clf = OneClassSVM(kernel="rbf", nu=0.1).fit(scaled_clean)
+    log("Computing Cutoff Statistic for All files")
+    for file in allFiles:
+        print(file)
+        triggers = pd.read_csv(file, index_col = 0)
+        for param in cutoff_params:
+            if param not in triggers.columns:
+                triggers[param] = formula(triggers, param)
+        set_clean = triggers[cutoff_params].values
+        scaled_clean = scaler.transform(set_clean)
+        triggers['VSV'] = -clf.decision_function(scaled_clean)
+        triggers.to_csv(file)    
+    
+else:
+    log("No Machine Learning used for cutoff")
     
     log("Initializing Mins and Maxs as infs")
-    maxX = -np.inf
-    minX = np.inf
-    maxY = -np.inf
-    minY = np.inf
+    mins = [np.inf for _ in range(len(cutoff_params))]
+    maxs = [-np.inf for _ in range(len(cutoff_params))]
     log("Looping through triggers to find mins and max")
-    for file in sorted(files):
+    for file in sorted(raw_files):
         print(file)
-        triggers = pd.read_csv(raw_trigger_dir + file)
-        triggers['chisqBysnrsq'] = triggers['chisq']/triggers['snr']**2
-        maxX = max([maxX, max(triggers['snr'])])
-        minX = min([minX, min(triggers['snr'])])
-        maxY = max([maxY, max(triggers['chisqBysnrsq'])])
-        minY = min([minY, min(triggers['chisqBysnrsq'])])
-        print(minX, maxX, minY, maxY, file)
+        triggers = pd.read_csv(file, index_col = 0)
+        for i, param in enumerate(cutoff_params):
+            if param not in triggers.columns:
+                triggers[param] = formula(triggers, param)
+            maxs[i] = max([maxs[i], max(triggers[param])])
+            mins[i] = min([mins[i], min(triggers[param])])
     
     log("Definint bins")
-    binsX = np.exp(np.linspace(np.log(0.9*minX), np.log(1.1*maxX), num = nBinsX, endpoint = True))
-    binsY = np.exp(np.linspace(np.log(0.9*minY), np.log(1.1*maxY), num = nBinsY, endpoint = True))
-
+    bins = np.array([np.linspace(0.9*MIN, 1.1*MAX, num = nBins, endpoint = True) for MIN, MAX in zip(mins, maxs)])
+    bins_reduced = np.array([b[:-1] for b in bins])
     log("Initializing Clean and Dirty Histograms")
-    X, Y = np.meshgrid(binsX[:-1], binsY[:-1])
+    Xs = np.array(np.meshgrid(*bins_reduced))
     hists = {'H1':{}, 'L1':{}}
-    hists['H1']['Clean'] = np.zeros((nBinsX-1, nBinsY-1))
-    hists['L1']['Clean'] = np.zeros((nBinsX-1, nBinsY-1))
-    hists['H1']['Dirty'] = np.zeros((nBinsX-1, nBinsY-1))
-    hists['L1']['Dirty'] = np.zeros((nBinsX-1, nBinsY-1))
-    
-    log("Listing clean, dirty, and other trigger files")
-    clean_files = sorted([clean_trigger_dir + f for f in os.listdir(clean_trigger_dir) if f.endswith(".csv")])
-    dirty_files = sorted([dirty_trigger_dir + f for f in os.listdir(dirty_trigger_dir) if f.endswith(".csv")])
-    other_files = sorted([other_trigger_dir + f for f in os.listdir(other_trigger_dir) if f.endswith(".csv")])
+    hists['H1']['Clean'] = np.zeros([nBins-1]*len(cutoff_params))
+    hists['L1']['Clean'] = np.zeros([nBins-1]*len(cutoff_params))
+    hists['H1']['Dirty'] = np.zeros([nBins-1]*len(cutoff_params))
+    hists['L1']['Dirty'] = np.zeros([nBins-1]*len(cutoff_params))
     
     log("Populating Clean Histograms")
     for file in clean_files:
         print(file)
-        triggers = pd.read_csv(file)
-        triggers['chisqBysnrsq'] = triggers['chisq']/triggers['snr']**2
+        triggers = pd.read_csv(file, index_col = 0)
+        for param in cutoff_params:
+            if param not in triggers.columns:
+                triggers[param] = formula(triggers, param)
         triggersH1 = triggers[triggers['ifo'] == 'H1']
         triggersL1 = triggers[triggers['ifo'] == 'L1']
-
-        histH1, xedges, yedges = np.histogram2d(triggersH1['snr'].values, triggersH1['chisqBysnrsq'].values, bins=[binsX, binsY])
-        histL1, xedges, yedges = np.histogram2d(triggersL1['snr'].values, triggersL1['chisqBysnrsq'].values, bins=[binsX, binsY])
-
+        
+        histH1, edges = np.histogramdd(triggersH1[cutoff_params].values, bins=bins)
+        histL1, edges = np.histogramdd(triggersL1[cutoff_params].values, bins=bins)
+        
         hists['H1']['Clean'] += histH1
         hists['L1']['Clean'] += histL1
     
     log("Populating Dirty Histograms")
     for file in dirty_files:
-        print(file)
-        triggers = pd.read_csv(file)
-        triggers['chisqBysnrsq'] = triggers['chisq']/triggers['snr']**2
+        triggers = pd.read_csv(file, index_col = 0)
+        for param in cutoff_params:
+            if param not in triggers.columns:
+                triggers[param] = formula(triggers, param)
         triggersH1 = triggers[triggers['ifo'] == 'H1']
         triggersL1 = triggers[triggers['ifo'] == 'L1']
-
-        histH1, xedges, yedges = np.histogram2d(triggersH1['snr'].values, triggersH1['chisqBysnrsq'].values, bins=[binsX, binsY])
-        histL1, xedges, yedges = np.histogram2d(triggersL1['snr'].values, triggersL1['chisqBysnrsq'].values, bins=[binsX, binsY])
+        histH1, edges = np.histogramdd(triggersH1[cutoff_params].values, bins=bins)
+        histL1, edges = np.histogramdd(triggersL1[cutoff_params].values, bins=bins)
 
         hists['H1']['Dirty'] += histH1
         hists['L1']['Dirty'] += histL1
     
     log("Saving Histograms")
     with open(temp_dir + tag + "-histograms.pkl", 'wb') as f:
-        pkl.dump((binsX, binsY, hists), f)
+        pkl.dump((edges, hists), f)
         
     log("Defining mid-bins for kde evaluation")
-    xs = np.log(np.array([0.5*(binsX[i] + binsX[i+1]) for i in range(binsX.shape[0]-1)]))
-    ys = np.log(np.array([0.5*(binsY[i] + binsY[i+1]) for i in range(binsY.shape[0]-1)]))
+    xs = np.array([np.array([0.5*(b[i] + b[i+1]) for i in range(b.shape[0]-1)]) for b in bins])
     
     log("Creating KDEs")
-    X, Y = np.meshgrid(xs, ys)
+    X = np.meshgrid(*xs)
+    ravels = [x.ravel() for x in X]
     kdes = {'H1':{}, 'L1':{}}
     for ifo in ['H1', 'L1']:
         for label in ['Clean', 'Dirty']:
-            kdes[ifo][label] = gaussian_kde([X.ravel(), Y.ravel()], weights = hists[ifo][label].T.ravel())
+            kdes[ifo][label] = gaussian_kde(ravels, weights = hists[ifo][label].T.ravel())
     
-    allFiles = clean_files + dirty_files + other_files
-    log("Looping Thorugh All Files")
+    log("Looping Thorugh All Files and computing the VSV")
     for file in allFiles:
         log("Reading file: " + file)
-        triggers = pd.read_csv(file)
-        
+        triggers = pd.read_csv(file, index_col = 0)
+        for param in cutoff_params:
+            if param not in triggers.columns:
+                triggers[param] = formula(triggers, param)
+                
         Ps = {label:np.zeros(len(triggers)) for label in ['Clean', 'Dirty']}
-
-        triggers['log_snr'] = np.log(triggers['snr'])
-        triggers['log_chisqBysnrsq'] = np.log(triggers['chisq']/triggers['snr']**2)
 
         for ifo in ['H1', 'L1']:
             triggersTemp = triggers[(triggers['ifo'] == ifo)]
             
-            Ps['Clean'][triggersTemp.index.values] = kdes[ifo]['Clean']([triggersTemp['log_snr'].values, triggersTemp['log_chisqBysnrsq'].values])
-            Ps['Dirty'][triggersTemp.index.values] = kdes[ifo]['Clean']([triggersTemp['log_snr'].values, triggersTemp['log_chisqBysnrsq'].values])
+            Ps['Clean'][triggersTemp.index.values] = kdes[ifo]['Clean'](triggersTemp[cutoff_params].values.T)
+            Ps['Dirty'][triggersTemp.index.values] = kdes[ifo]['Dirty'](triggersTemp[cutoff_params].values.T)
             
         triggers['P_Clean'] = Ps['Clean']
         triggers['P_Dirty'] = Ps['Dirty']
@@ -195,3 +248,4 @@ else:
         
         triggers.to_csv(file)
 
+log("Done with Compute_Cutoff_Statistic.py")
