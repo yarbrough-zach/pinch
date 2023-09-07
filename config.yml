@@ -1,30 +1,57 @@
+# Configuration for glitch files
 glitches:
+        # Path for Gravity Spy Classified glitches file
         gspy-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/O3glitches.csv" 
+        # Path for Omicron triggers file
         omic-file: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/glitch/omicron.csv"
 
+# Configuration for Trigger files
 triggers:
+        # Pipeline beign analyzed
         pipeline: "gstlal"
+        # Directory containing csv of raw trigger files
         raw-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/TriggerFiles"
+        # Directory that will contain the raw trigger files classified as "clean"
         clean-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/CleanTriggerFiles"
+        # Directory that will contain the raw trigger files classified as "dirty"
         dirty-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/DirtyTriggerFiles"
+        # Directory that will contain the raw trigger files classified as "other"
         other-trigger-dir: "/home/andre.guimaraes/public_html/gstlal/offline_analysis/GstLALGspy/Large_Volume_Analysis/data/gstlal/OtherTriggerFiles"
+        
+# Configuration for plots
 plots:
+        # Directory that will contain the generated plots
         plots-dir: "./plots"
 
-
+# Configurations of the workflow
 workflow:
+        # Configurations for finding dirty triggers
         trigger-finding:
+                # The snr threshold of omicron triggers for a trigger to be considered not clean
                 omicron-snr-cutoff: 6
+        # Configurations for the cutoff step separating the Dirty triggers set
         cutoff:
-                number-bins: 200
-                cutoff-params: ['log_snr', 'log_chisqBysnrsq', 'log_bankchisqBysnrsq']
-                percentile-cutoff: 99
+                # True or false, weather to use machine learning for seaprating dirty triggers set
                 machine-learning-cutoff: True
+                # Number of bins in histogram (used only if machine learning is False)
+                number-bins: 200
+                # Number of clean trigger samples used to train the ML algorithm
                 machine-learning-samples: 100000
+                # Parameters used to separate dirty and clean triggers
+                cutoff-params: ['log_snr', 'log_chisqBysnrsq', 'log_bankchisqBysnrsq']
+                # Cutoff percentile on the VSV statistic (both ML and non ML
+                percentile-cutoff: 99
+        # Configurations for categorization
         categorization:
+                # Weather to use machine learning or not during categorization
                 machine-learning-cat: False
+        # Other configurations
         other:
+                # Directory for temporary files
                 temp-dir: "./temp"
+                # Diractory for log files
                 log-dir: "./logs"
+                # Weather to log things or not
                 log: True
+                # Tag of the current run, update it
                 tag: "gstlal_01"

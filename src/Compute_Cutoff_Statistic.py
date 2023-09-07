@@ -114,10 +114,10 @@ if not os.path.exists(log_dir):
 log("Starting Up Compute_Cutoff_Statistic.py")
 
 log("Listing clean, dirty, and other trigger files")
-raw_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])
-clean_files = sorted([clean_trigger_dir + f for f in os.listdir(clean_trigger_dir) if f.endswith(".csv")])
-dirty_files = sorted([dirty_trigger_dir + f for f in os.listdir(dirty_trigger_dir) if f.endswith(".csv")])
-other_files = sorted([other_trigger_dir + f for f in os.listdir(other_trigger_dir) if f.endswith(".csv")])
+raw_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])[:1]
+clean_files = sorted([clean_trigger_dir + f for f in os.listdir(clean_trigger_dir) if f.endswith(".csv")])[:1]
+dirty_files = sorted([dirty_trigger_dir + f for f in os.listdir(dirty_trigger_dir) if f.endswith(".csv")])[:1]
+other_files = sorted([other_trigger_dir + f for f in os.listdir(other_trigger_dir) if f.endswith(".csv")])[:1]
 allFiles = clean_files + dirty_files + other_files
 if machine_learning_cutoff:
     log("Using Machine Learning for cutoff")
