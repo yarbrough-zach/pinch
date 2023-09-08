@@ -33,7 +33,7 @@ log_q = config['workflow']['other']['log']
 
 print("Loading Glitches Configurations")
 gspy_file = config['glitches']['gspy-file']
-omic_file = config['glitches']['gspy-file']
+omic_file = config['glitches']['omic-file']
 
 print("Loading Triggers Configurations")
 pipeline = config['triggers']['pipeline']
@@ -95,10 +95,10 @@ if not os.path.exists(log_dir):
 log("Starting Up Apply_Cutoff.py")
 
 log("Listing clean, dirty, and other trigger files")
-raw_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])
-clean_files = sorted([clean_trigger_dir + f for f in os.listdir(clean_trigger_dir) if f.endswith(".csv")])
-dirty_files = sorted([dirty_trigger_dir + f for f in os.listdir(dirty_trigger_dir) if f.endswith(".csv")])
-other_files = sorted([other_trigger_dir + f for f in os.listdir(other_trigger_dir) if f.endswith(".csv")])
+raw_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])[:1]
+clean_files = sorted([clean_trigger_dir + f for f in os.listdir(clean_trigger_dir) if f.endswith(".csv")])[:1]
+dirty_files = sorted([dirty_trigger_dir + f for f in os.listdir(dirty_trigger_dir) if f.endswith(".csv")])[:1]
+other_files = sorted([other_trigger_dir + f for f in os.listdir(other_trigger_dir) if f.endswith(".csv")])[:1]
 
 log('Loading the VSV for all the clean files')
 VSV_clean = None

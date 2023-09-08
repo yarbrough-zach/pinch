@@ -57,7 +57,7 @@ log_q = config['workflow']['other']['log']
 
 print("Loading Glitches Configurations")
 gspy_file = config['glitches']['gspy-file']
-omic_file = config['glitches']['gspy-file']
+omic_file = config['glitches']['omic-file']
 
 print("Loading Triggers Configurations")
 pipeline = config['triggers']['pipeline']

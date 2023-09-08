@@ -27,7 +27,7 @@ log_q = config['workflow']['other']['log']
 
 print("Loading Glitches Configurations")
 gspy_file = config['glitches']['gspy-file']
-omic_file = config['glitches']['gspy-file']
+omic_file = config['glitches']['omic-file']
 
 print("Loading Triggers Configurations")
 pipeline = config['triggers']['pipeline']
@@ -83,7 +83,7 @@ if not os.path.exists(log_dir):
 log("Starting Up Find_Dirty_Triggers.py")
 
 log("Sorting out Trigger Files")
-trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])
+trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])[:1]
 
 log("Reading Gspy File")
 glitches = pd.read_csv(gspy_file, index_col = 0)
@@ -91,18 +91,19 @@ glitches = pd.read_csv(gspy_file, index_col = 0)
 log("Reading Omic File")
 omics = pd.read_csv(omic_file, index_col = 0)
 
-log("Applying cut on Omic triggers")
+log("Applying cut on Omic triggers " + str(omicron_snr_cutoff))
 if type(omicron_snr_cutoff) == type(None):
     omicron_snr_cutoff = min(glitches['snr'])
-omics = omics[omics['snr'] > omicron_snr_cutoff]
+print("Omicron Size Original: ", len(omics))
+omics = omics[omics['snr'] >= omicron_snr_cutoff]
+print("Omicron Size SNR Reduced: ", len(omics))
 
 log("Defining glitches 'tstart' and 'tend'")
 glitches['tstart'] = glitches['GPStime'] - glitches['duration']/2
 glitches['tend'] = glitches['GPStime'] + glitches['duration']/2
 
 log("Defining omics 'tstart' and 'tend'")
-omics['tstart'] = omics['GPStime'] - omics['duration']/2
-omics['tend'] = omics['GPStime'] + omics['duration']/2
+omics['GPStime'] = omics['time']
 
 log("Looping Through triggers")
 for trigger_file in trigger_files:
@@ -123,7 +124,7 @@ for trigger_file in trigger_files:
     log("Applying masks to glitches and omic into temporary variables")
     glitches_temp = glitches[glitch_time_mask]
     omics_temp = omics[omic_time_mask]
-
+    print("Omicron Size Time Constrained: ", len(omics_temp))  
     log("Creating masks for IFOs")
     ifo_mask = {'H1':triggers['ifo'] == 'H1', 'L1':triggers['ifo'] == 'L1'}
     
