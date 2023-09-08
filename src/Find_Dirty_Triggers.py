@@ -83,7 +83,7 @@ if not os.path.exists(log_dir):
 log("Starting Up Find_Dirty_Triggers.py")
 
 log("Sorting out Trigger Files")
-trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])
+trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])[:1]
 
 log("Reading Gspy File")
 glitches = pd.read_csv(gspy_file, index_col = 0)
