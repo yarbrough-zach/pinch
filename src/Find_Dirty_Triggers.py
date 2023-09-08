@@ -181,7 +181,7 @@ for trigger_file in trigger_files:
     log("Number of Dirty Triggers Found: " + str(len(triggers_dirty)))
     log("Number of Other Triggers Found: " + str(len(triggers_other)))
     
-    log("Saving the CSV for eacht rigger")
+    log("Saving the CSV for each trigger file")
     triggers_clean.to_csv(trigger_file.replace(raw_trigger_dir, clean_trigger_dir))
     triggers_dirty.to_csv(trigger_file.replace(raw_trigger_dir, dirty_trigger_dir))
     triggers_other.to_csv(trigger_file.replace(raw_trigger_dir, other_trigger_dir))
