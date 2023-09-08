@@ -37,7 +37,7 @@ workflow:
                 # True or false, weather to use machine learning for seaprating dirty triggers set
                 machine-learning-cutoff: False
                 # Number of bins in histogram (used only if machine learning is False)
-                number-bins: 200
+                number-bins: 100
                 # Number of clean trigger samples used to train the ML algorithm
                 machine-learning-samples: 100000
                 # Parameters used to separate dirty and clean triggers
