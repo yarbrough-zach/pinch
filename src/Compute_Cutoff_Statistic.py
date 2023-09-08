@@ -170,7 +170,7 @@ else:
             maxs[i] = max([maxs[i], max(triggers[param])])
             mins[i] = min([mins[i], min(triggers[param])])
     
-    log("Definint bins")
+    log("Defining histogram bins")
     bins = np.array([np.linspace(0.9*MIN, 1.1*MAX, num = nBins, endpoint = True) for MIN, MAX in zip(mins, maxs)])
     bins_reduced = np.array([b[:-1] for b in bins])
     log("Initializing Clean and Dirty Histograms")
