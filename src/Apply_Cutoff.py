@@ -106,9 +106,9 @@ for file in clean_files:
     print(file)
     triggers = pd.read_csv(file, index_col = 0)
     if type(VSV_clean) == type(None):
-        VSV_clean = triggers['VSV'].value
+        VSV_clean = triggers['VSV'].values
     else:
-        VSV_clean = np.append(VSV_clean, triggers['VSV'].value, axis = 0)
+        VSV_clean = np.append(VSV_clean, triggers['VSV'].values, axis = 0)
 log("Calculating threshold based on percentile cutoff")
 threshold = np.percentile(VSV_clean, percentile_cutoff)
 
