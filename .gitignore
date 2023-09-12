@@ -9,4 +9,4 @@ logs/*
 temp/
 old/
 .nfs*
-prototyping/plots/
+prototyping/Notes.ipynb
