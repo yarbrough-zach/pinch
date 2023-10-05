@@ -35,11 +35,11 @@ workflow:
         # Configurations for the cutoff step separating the Dirty triggers set
         cutoff:
                 # True or false, weather to use machine learning for seaprating dirty triggers set
-                machine-learning-cutoff: False
+                machine-learning-cutoff: True
                 # Number of bins in histogram (used only if machine learning is False)
                 number-bins: 100
                 # Number of clean trigger samples used to train the ML algorithm
-                machine-learning-samples: 100000
+                machine-learning-samples: 10000
                 # Parameters used to separate dirty and clean triggers
                 cutoff-params: ['log_snr', 'log_chisqBysnrsq', 'log_bankchisqBysnrsq']
                 # Cutoff percentile on the VSV statistic (both ML and non ML

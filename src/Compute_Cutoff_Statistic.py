@@ -149,9 +149,9 @@ if machine_learning_cutoff:
         for param in cutoff_params:
             if param not in triggers.columns:
                 triggers[param] = formula(triggers, param)
-        set_clean = triggers[cutoff_params].values
-        scaled_clean = scaler.transform(set_clean)
-        triggers['VSV'] = -clf.decision_function(scaled_clean)
+        data = triggers[cutoff_params].values
+        scaled_data = scaler.transform(data)
+        triggers['VSV'] = -clf.decision_function(scaled_data)
         triggers.to_csv(file)    
     
 else:
@@ -238,7 +238,7 @@ else:
 
         for ifo in ['H1', 'L1']:
             triggersTemp = triggers[(triggers['ifo'] == ifo)]
-            
+            triggersTemp.index = list(range(len(triggersTemp)))
             Ps['Clean'][triggersTemp.index.values] = kdes[ifo]['Clean'](triggersTemp[cutoff_params].values.T)
             Ps['Dirty'][triggersTemp.index.values] = kdes[ifo]['Dirty'](triggersTemp[cutoff_params].values.T)
             
