@@ -1,0 +1,14 @@
+universe = vanilla
+executable = /home/zach.yarbrough/TGST/observing/4/a/scripts/get_gstlal_triggers_preallocate.py
+arguments = --input-path $(input_file_path) --output-path $(output_path) --start $(start) --end $(end) --chunk $(chunk) --dir $(dir) --gps-target $(gps_target)
+request_cpus = 1
+request_memory = 5000
+request_disk = 3GB
+accounting_group_user = zach.yarbrough
+accounting_group  = ligo.dev.o4.detchar.explore.test
+output = logs/$(dir)_trigs.out
+error = logs/$(dir)_trigs.err
+log = logs/$(dir)_trigs.log
+success_exit_code = 0
+
+queue
