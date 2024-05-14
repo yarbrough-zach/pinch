@@ -59,11 +59,11 @@ class GstlalTriggers:
         elif gps_target is not None:
             print('gps target', gps_target)
             print("test", os.path.join(input_file_path, f"*_noninj_LLOID-{dir}{gps_target}*.xml.gz"))
-            files += glob.glob(os.path.join(input_file_path, dir, f"*_noninj_LLOID-{dir}{gps_target}*.xml.gz"))
+            files += glob.glob(os.path.join(input_file_path, f"*_noninj_LLOID-{dir}{gps_target}*.xml.gz"))
             print("glob", files)
         
         if not files:
-            raise ValueError(f"List of trigger files is empty")
+            raise ValueError(f"List of trigger files is empty for dir {dir} and target {gps_target}")
         print(files)
         return list(files)
     
