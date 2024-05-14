@@ -40,25 +40,31 @@ class GstlalTriggers:
         if not os.path.isdir(args.input_path):
             raise ValueError(f"{args.input_path} is not a valid path")
     
-    def find_gstlal_edward_trigger_files_per_chunk(self, dir, start, end, input_file_path, low, high, gps_target):
-        dir = input_file_path.split('/')[-1]
+    def find_gstlal_edward_trigger_files_per_chunk(self, dir=None, start=None, end=None, input_file_path=None, low=None, high=None, gps_target=None):
+        print('find files per chunk') 
+
+        files = []
 
         if (low and high) and not gps_target:
             range = np.arange(low, high)
 
-            files = []
             for i in range:
                 print(f"{input_file_path}/*_noninj_LLOID-{dir}{i}*.xml.gz")
                 query = glob.glob(f"{input_file_path}/*_noninj_LLOID-{dir}{i}*.xml.gz")
                 print(query)
                 files += query
+            
+            print("low, high", files)
         
-        elif gps_target:
-            files = glob.glob(f"{input_file_path}/*_noninj_LLOID-{dir}{gps_target}*.xml.gz")
+        elif gps_target is not None:
+            print('gps target', gps_target)
+            print("test", os.path.join(input_file_path, f"*_noninj_LLOID-{dir}{gps_target}*.xml.gz"))
+            files += glob.glob(os.path.join(input_file_path, dir, f"*_noninj_LLOID-{dir}{gps_target}*.xml.gz"))
+            print("glob", files)
         
         if not files:
             raise ValueError(f"List of trigger files is empty")
-
+        print(files)
         return list(files)
     
     def read_gstlal_xml(self, file):
@@ -105,10 +111,10 @@ if __name__ == "__main__":
     
     gstlalTriggers = GstlalTriggers(args.start, args.end, args.input_path, args.output_path)
     
-    files = gstlalTriggers.find_gstlal_edward_trigger_files_per_chunk(args.dir, args.start, args.end, args.input_path, args.low, args.high, args.gps_target)
+    glob_files = gstlalTriggers.find_gstlal_edward_trigger_files_per_chunk(dir=args.dir, input_file_path=args.input_path, low=args.low, high=args.high, gps_target=args.gps_target)
     
     append_index = 0
-    for file in files:
+    for file in glob_files:
         count = gstlalTriggers.read_snglrow(trigger_df, file, append_index)
         append_index = count
 
