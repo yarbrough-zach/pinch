@@ -28,6 +28,8 @@ parser.add_argument('--dir', type=str)
 parser.add_argument('--low', type=int)
 parser.add_argument('--high', type=int)
 parser.add_argument('--gps-target', type=int)
+parser.add_argument('--save-likelihoods', action='store_true')
+parser.add_argument('--likelihood-output-path', type=str)
 args = parser.parse_args()
 
 class GstlalTriggers:
@@ -71,7 +73,12 @@ class GstlalTriggers:
         svd = file.split('-')[1].split('_')[0][1:]
         xmldoc = ligolw_utils.load_filename(file, contenthandler = LIGOLWContentHandler)
         snglrow = lsctables.SnglInspiralTable.get_table(xmldoc)
-        return svd, snglrow
+        coincrow = lsctables.CoincTable.get_table(xmldoc)
+        
+        if args.save_likelihoods:
+            return svd, coincrow
+        else:
+            return svd, snglrow
 
     def read_snglrow(self, dataframe, file, append_index):
         
@@ -99,6 +106,14 @@ class GstlalTriggers:
                 
         return append_index
 
+    def read_coincrow(self, dataframe, file, append_index):
+        svd, coincrow = self.read_gstlal_xml(file)
+        for row in coincrow:
+            dataframe.loc[append_index, 'likelihood'] = row.likelihood
+            dataframe.loc[append_index, 'coinc_def_id'] = row.coinc_def_id
+            dataframe.loc[append_index, 'coinc_event_id'] = row.coinc_event_id
+        
+
                 
 if __name__ == "__main__":
 #    print("Running...")
@@ -107,7 +122,6 @@ if __name__ == "__main__":
            "template_id", "end_time", "end_time_ns"]
 
     trigger_df = pd.DataFrame(columns=columns, index=range(int(1e6)))
-#    print("Trigger df:", trigger_df)
     
     gstlalTriggers = GstlalTriggers(args.start, args.end, args.input_path, args.output_path)
     
@@ -121,3 +135,14 @@ if __name__ == "__main__":
     trigger_df = trigger_df.iloc[:append_index]
 
     trigger_df.to_csv(args.output_path)
+
+    if args.save_likelihoods:
+        columns = ['likelihood', 'coinc_def_id', 'coinc_event_id']
+        likelihood_df = pd.DataFrame(columns=columns, index=range(int(1e6)))
+
+        append_index = 0
+        for file in glob_files:
+            count = gstlalTriggers.read_coincrow(likelihood_df, file, append_index)
+            append_index = count
+
+        likelihood_df.to_csv(args.likelihood_output_path)

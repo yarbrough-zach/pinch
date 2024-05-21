@@ -9,6 +9,7 @@ from file_finder import FileFinder
 parser = argparse.ArgumentParser()
 parser.add_argument('--input-path', type=str)
 parser.add_argument('--output-path', type=str)
+parser.add_argument('--likelihood-output-path', type=str)
 parser.add_argument('--chunk', type=str)
 parser.add_argument('--num-jobs', type=int)
 parser.add_argument('--chunk-definition-file', type=str)
@@ -50,11 +51,12 @@ with open(os.path.join(args.dag_output_path, f"fetch_chunk{args.chunk}_prealloca
 
         for j in range(0, 9):
             loop_output_file_path = os.path.join(args.output_path, f"gstlal_chunk{args.chunk}_{dir}_part{job_num}_triggers.csv")
+            loop_output_likelihoods_file_path = os.path.join(args.likelihood_output_path, f"gstlal_chunk{args.chunk}_likelihoods_part{job_num}.triggers.csv")
 
             tag = format(job_num, '05')
 
             f.write(f'JOB fetch_gstlal_triggers.{tag} fetch_gstlal_triggers.sub\n')
-            f.write(f'VARS fetch_gstlal_triggers.{tag} nodename="fetch_gstlal_triggers_{tag}" input_file_path="{loop_input_file_path}" output_path="{loop_output_file_path}" start="{start}" end="{end}" chunk="{args.chunk}" dir="{dir}" gps_target="{j}"\n')
+            f.write(f'VARS fetch_gstlal_triggers.{tag} nodename="fetch_gstlal_triggers_{tag}" input_file_path="{loop_input_file_path}" output_path="{loop_output_file_path}" likelihood_output_path="{loop_output_likelihoods_file_path}" start="{start}" end="{end}" chunk="{args.chunk}" dir="{dir}" gps_target="{j}"\n')
 
             job_num += 1
 
