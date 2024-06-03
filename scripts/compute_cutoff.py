@@ -100,12 +100,18 @@ if machine_learning_cutoff:
     for file in allFiles:
         print(file)
         triggers = pd.read_csv(file, index_col = 0)
-        for param in cutoff_params:
-            if param not in triggers.columns:
-                triggers[param] = formula(triggers, param)
-        data = triggers[cutoff_params].values
-        scaled_data = scaler.transform(data)
-        triggers['VSV'] = -clf.decision_function(scaled_data)
-        triggers.to_csv(file)    
+        
+        ifo_triggers = {}
+        for ifo in ['H1', 'L1']:
+            ifo_triggers[ifo] = triggers[triggers.ifo == ifo]
+        
+            for param in cutoff_params:
+                if param not in ifo_triggers[ifo].columns:
+                    ifo_triggers[ifo][param] = formula(ifo_triggers[ifo], param)
+            data = ifo_triggers[ifo][cutoff_params].values
+            scaled_data = scaler.transform(data)
+            ifo_triggers[ifo]['vsv'] = -clf.decision_function(scaled_data)
+        new_df = pd.concat([ifo_triggers['H1'], ifo_triggers['L1']])
+        new_df.to_csv(file)    
     
 print("Done with compute_cutoff.py")
