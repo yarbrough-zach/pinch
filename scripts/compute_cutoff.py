@@ -18,7 +18,11 @@ parser.add_argument("--pipeline-triggers", type=str, help="Path to raw pipeline 
 parser.add_argument("--clean-triggers", type=str)
 parser.add_argument("--dirty-triggers", type=str)
 parser.add_argument("--other-triggers", type=str)
+parser.add_argument("--save-model", action='store_true')
+parser.add_argument("--model-output-path", type=str, default=".")
 args = parser.parse_args()
+
+# ADDME args sanity check
 
 pipeline = "gstlal" 
 
@@ -96,6 +100,11 @@ if machine_learning_cutoff:
     scaled_clean = scaler.fit_transform(set_clean)
     print("Training SVM")
     clf = OneClassSVM(kernel="rbf", nu=0.1).fit(scaled_clean)
+        if args.save_model:
+            print("Saving model")
+            with open(f"{args.model_output_path}/trained_svm_classifier.pkl", 'wb') as fid:
+                pkl.dump(clf, fid)
+            print("Model saved")
     print("Computing Cutoff Statistic for All files")
     for file in allFiles:
         print(file)
