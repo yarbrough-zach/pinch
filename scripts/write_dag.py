@@ -72,6 +72,16 @@ with open(os.path.join(args.dag_output_path, f"fetch_chunk{args.chunk}_prealloca
                 job_num += 1
 
 
+        # Write the final job
+        f.write(f"JOB combine_trigger_files combine_trigger_files.sub\n")
+
+        # Write the dependencies
+        f.write("PARENT ")
+        for j in range(0, 9):
+            job_id = f"fetch_gstlal_triggers.{i:05d}"
+        f.write(f"{job_id} ")
+        f.write("CHILD combine_trigger_files\n")
+
         #job_num += 1
         #
         #loop_output_file_path = os.path.join(args.output_path, f"gstlal_chunk{args.chunk}_{dir}_half2_triggers.csv")
