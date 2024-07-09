@@ -8,7 +8,9 @@ import argparse
 from get_gspy_events import GravitySpyEvents
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--pipeline', type=str)
 parser.add_argument('--pipeline-triggers', type=str)
+parser.add_argument('--nrows', type=int)
 parser.add_argument('--gspy-triggers', type=str)
 parser.add_argument('--omicron-triggers-H1', type=str)
 parser.add_argument('--omicron-triggers-L1', type=str)
@@ -72,18 +74,40 @@ omics['tstart'] = (omics['peak_time'] + 1e-9*omics['peak_time_ns']) + omics['dur
 omics['GPStime'] = omics['peak_time'] + 1e-9*omics['peak_time_ns']
 
 print(f"Trigger file: {args.pipeline_triggers}")
-triggers = pd.read_csv(f"{args.pipeline_triggers}", index_col = 0)
-triggers['GPStime'] = triggers['end_time'] + 1e-9*triggers['end_time_ns']
-triggers['start_time'] = triggers['GPStime'] - triggers['template_duration']
+
+if args.pipeline == 'gstlal':
+    triggers = pd.read_csv(f"{args.pipeline_triggers}", index_col = 0)
+
+elif args.pipeline == 'pycbc':
+
+    if args.nrows:
+        triggers = pd.read_csv(f"{args.pipeline_triggers}", nrows=args.nrows) #nrows = 1000000
+    else:
+        triggers = pd.read_csv(f"{args.pipeline_triggers}")
+
+print(triggers.columns)
+
+
+if args.pipeline == 'gstlal':
+    triggers['GPStime'] = triggers['end_time'] + 1e-9*triggers['end_time_ns']
+    triggers['start_time'] = triggers['GPStime'] - triggers['template_duration']
+
+elif args.pipeline == 'pycbc':
+    triggers['GPStime'] = triggers.end_time
+    triggers['ifo'] = 'L1'
 
 glitchIDs = ['None']*len(triggers)
 omicIDs = [-1]*len(triggers)
 
-print(f"Triggers: {min(triggers.start_time)}, {max(triggers.GPStime)}")
-print(f"Glitches: {min(glitches.tstart)}, {max(glitches.tend)}")
+#print(f"Triggers: {min(triggers.start_time)}, {max(triggers.GPStime)}")
+#print(f"Glitches: {min(glitches.tstart)}, {max(glitches.tend)}")
 
-glitch_time_mask = (glitches['tstart'] >= min(triggers['start_time'])) & (glitches['tend'] <= max(triggers['GPStime']))
-omic_time_mask = (omics['tend'] >= min(triggers['GPStime'])) & (omics['tstart'] <= max(triggers['GPStime']))
+if args.pipeline ==  'gstlal':
+    glitch_time_mask = (glitches['tstart'] >= min(triggers['start_time'])) & (glitches['tend'] <= max(triggers['GPStime']))
+    omic_time_mask = (omics['tend'] >= min(triggers['GPStime'])) & (omics['tstart'] <= max(triggers['GPStime']))
+elif args.pipeline == 'pycbc':
+    glitch_time_mask = (glitches['tstart'] >= min(triggers['GPStime'])) & (glitches['tend'] <= max(triggers['GPStime']))
+    omic_time_mask = (omics['tend'] >= min(triggers['GPStime'])) & (omics['tstart'] <= max(triggers['GPStime']))
 
 glitches_temp = glitches[glitch_time_mask]
 print(f"len glitches_temp: {len(glitches_temp)}")
@@ -98,8 +122,14 @@ for i, glitch in glitches_temp.iterrows():
         print(str(count) + " / " + str(len(glitches_temp)))
 
     ifo = glitch['ifo']
-    triggers_in_glitch_mask = (triggers['start_time'] <= glitch["tend"]) & (triggers['GPStime'] >= glitch["tstart"])
-    triggers_in_glitch = triggers[triggers_in_glitch_mask & ifo_mask[ifo]]
+
+    if args.pipeline == 'gstlal':
+        triggers_in_glitch_mask = (triggers['start_time'] <= glitch["tend"]) & (triggers['GPStime'] >= glitch["tstart"])
+        triggers_in_glitch = triggers[triggers_in_glitch_mask & ifo_mask[ifo]]
+    
+    elif args.pipeline == 'pycbc':
+        triggers_in_glitch_mask = (triggers['GPStime'] <= glitch["tend"]) & (triggers['GPStime'] >= glitch["tstart"])
+        triggers_in_glitch = triggers[triggers_in_glitch_mask & ifo_mask[ifo]]
     
     indexes = triggers_in_glitch.index
     for idx in indexes:
@@ -111,8 +141,14 @@ for i, omic in omics_temp.iterrows():
     ifo = omic['ifo']
     if count % 1000 == 0:
         print(str(count) + " / " + str(len(omics_temp)))
-    triggers_in_omic_mask = (triggers['start_time'] <= omic["tend"]) & (triggers['GPStime'] >= omic["tstart"])
-    triggers_in_omic = triggers[triggers_in_omic_mask & ifo_mask[ifo]]
+
+    if args.pipeline == 'gstlal':
+        triggers_in_omic_mask = (triggers['start_time'] <= omic["tend"]) & (triggers['GPStime'] >= omic["tstart"])
+        triggers_in_omic = triggers[triggers_in_omic_mask & ifo_mask[ifo]]
+    elif args.pipeline == 'pycbc':
+        triggers_in_omic_mask = (triggers['GPStime'] <= omic["tend"]) & (triggers['GPStime'] >= omic["tstart"])
+        triggers_in_omic = triggers[triggers_in_omic_mask & ifo_mask[ifo]]
+    
     if count % 1000 == 0:
         print(f"len triggers_in_omic: {len(triggers_in_omic)}")
     indexes = triggers_in_omic.index
