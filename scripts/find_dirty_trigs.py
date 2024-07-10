@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import yaml
 import argparse
+import time
 
 from get_gspy_events import GravitySpyEvents
 
@@ -20,6 +21,7 @@ parser.add_argument('--other-output', type=str)
 parser.add_argument('--query', action='store_true')
 parser.add_argument('--chunk-definition-file', type=str)
 parser.add_argument('--chunk', type=str)
+parser.add_argument('--tag', type=str)
 args = parser.parse_args()
 
 #trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])[:1]
@@ -38,7 +40,8 @@ if args.query and args.chunk_definition_file and args.chunk:
 
     start = chunk_dict[args.chunk][0]
     end = chunk_dict[args.chunk][1]
-    
+    wait_time = np.random.uniform(30, 300)
+    time.sleep(wait_time)
     gspy = GravitySpyEvents(t_start = start, t_end = end)
     glitches = gspy.fetch_gravity_spy_events()
     glitches = glitches.to_pandas()
@@ -177,8 +180,8 @@ triggers_other = pd.concat([triggers_other, triggers_dirty[triggers_dirty['ml_co
 #triggers_dirty = triggers_dirty[triggers_dirty['confidence'] >= 0.9]
 print(f"len triggers_Dirty after confidence cut: {len(triggers_dirty)}")
 
-triggers_clean.to_csv(f"{args.clean_output}/clean_chunk{args.chunk}.csv")
-triggers_dirty.to_csv(f"{args.dirty_output}/dirty_chunk{args.chunk}.csv")
-triggers_other.to_csv(f"{args.other_output}/other_chunk{args.chunk}.csv")
+triggers_clean.to_csv(f"{args.clean_output}/clean_chunk{args.chunk}_{args.tag}.csv")
+triggers_dirty.to_csv(f"{args.dirty_output}/dirty_chunk{args.chunk}_{args.tag}.csv")
+triggers_other.to_csv(f"{args.other_output}/other_chunk{args.chunk}_{args.tag}.csv")
 
 print("Done!")
