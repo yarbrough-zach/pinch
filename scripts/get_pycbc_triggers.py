@@ -14,6 +14,8 @@ from gwpy.segments import Segment, SegmentList
 from urllib.parse import urlparse
 from gwpy.table.io.pycbc import filter_empty_files
 
+from chunk_parse import ChunkParse 
+
 import h5py
 
 hoft_channel = 'L1:GDS-CALIB_STRAIN'
@@ -21,16 +23,18 @@ idq_channel = 'L1:IDQ-LOGLIKE_OVL_16_4096'
 whistle_flag = 'L1:DCH-WHISTLES:1'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--start', type=int)
-parser.add_argument('--end', type=int)
 parser.add_argument('--chunk', type=str)
+parser.add_argumnet('--chunk-definition-file', type=str)
 parser.add_argument('--output-path', type=str)
 args = parser.parse_args()
 
 #start = 1373711624
 #end = 1374936316
 
-pycbc_files = find_trigger_files(hoft_channel, 'pycbc_live', args.start, args.end)
+chunkparse = ChunkParse()
+start, end = chunkparse.parse_chunk_file(args.chunk, args.chunk_definition_file)
+
+pycbc_files = find_trigger_files(hoft_channel, 'pycbc_live', start, end)
 
 print(pycbc_files)
 
