@@ -7,6 +7,7 @@ import argparse
 import time
 
 from get_gspy_events import GravitySpyEvents
+from chunk_parse import ChunkParse 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--pipeline', type=str)
@@ -28,18 +29,22 @@ args = parser.parse_args()
 
 if args.query and args.chunk_definition_file and args.chunk:
 
-    chunk_dict = {}
-    with open(args.chunk_definition_file, "r") as file:
-        lines = file.readlines()
+    #chunk_dict = {}
+    #with open(args.chunk_definition_file, "r") as file:
+    #    lines = file.readlines()
 
-        for line in lines:
-            elements = line.split()
-            chunk_dict[elements[0]] = [elements[1], elements[2]]
+     #   for line in lines:
+     #       elements = line.split()
+     #       chunk_dict[elements[0]] = [elements[1], elements[2]]
 
-    del chunk_dict['#']
+    #del chunk_dict['#']
 
-    start = chunk_dict[args.chunk][0]
-    end = chunk_dict[args.chunk][1]
+    #start = chunk_dict[args.chunk][0]
+    #end = chunk_dict[args.chunk][1]
+    
+    chunkparse = ChunkParse()
+    start, end = chunkparse.parse_chunk_file(args.chunk, args.chunk_definition_file)
+
     wait_time = np.random.uniform(30, 300)
     time.sleep(wait_time)
     gspy = GravitySpyEvents(t_start = start, t_end = end)
