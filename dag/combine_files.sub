@@ -1,0 +1,14 @@
+universe = vanilla
+executable = /home/zach.yarbrough/pycbc_triggers/tgst/tgst/scripts/combine_files.py
+arguments = --input-path $(input_path) --output-path $(output_path) 
+request_cpus = 1
+request_memory = 100000
+request_disk = 3GB
+accounting_group_user = zach.yarbrough
+accounting_group  = ligo.dev.o4.detchar.explore.test
+output = logs/combine_trigs.out
+error = logs/combine_trigs.err
+log = logs/combine_trigs.log
+success_exit_code = 0
+
+queue

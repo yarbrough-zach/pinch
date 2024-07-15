@@ -12,6 +12,8 @@ parser.add_argument('--output-path', type=str)
 parser.add_argument('--chunk', type=str)
 parser.add_argument('--num-jobs', type=int)
 parser.add_argument('--chunk-definition-file', type=str)
+parser.add_argument('--save-likelihoods', action='store_true')
+parser.add_argument('--likelihood-output-path', type=str)
 parser.add_argument('--dag-output-path', type=str, help='Where to save dag')
 args = parser.parse_args()
 
@@ -51,12 +53,34 @@ with open(os.path.join(args.dag_output_path, f"fetch_chunk{args.chunk}_prealloca
         for j in range(0, 9):
             loop_output_file_path = os.path.join(args.output_path, f"gstlal_chunk{args.chunk}_{dir}_part{job_num}_triggers.csv")
 
-            tag = format(job_num, '05')
+            if args.save_likelihoods:
+                loop_output_likelihoods_file_path = os.path.join(args.likelihood_output_path, f"gstlal_chunk{args.chunk}_likelihoods_part{job_num}.triggers.csv")
 
-            f.write(f'JOB fetch_gstlal_triggers.{tag} fetch_gstlal_triggers.sub\n')
-            f.write(f'VARS fetch_gstlal_triggers.{tag} nodename="fetch_gstlal_triggers_{tag}" input_file_path="{loop_input_file_path}" output_path="{loop_output_file_path}" start="{start}" end="{end}" chunk="{args.chunk}" dir="{dir}" gps_target="{j}"\n')
+                tag = format(job_num, '05')
 
-            job_num += 1
+                f.write(f'JOB fetch_gstlal_triggers.{tag} fetch_gstlal_triggers.sub\n')
+                f.write(f'VARS fetch_gstlal_triggers.{tag} nodename="fetch_gstlal_triggers_{tag}" input_file_path="{loop_input_file_path}" output_path="{loop_output_file_path}" likelihood_output_path="{loop_output_likelihoods_file_path}" start="{start}" end="{end}" chunk="{args.chunk}" dir="{dir}" gps_target="{j}"\n')
+
+                job_num += 1
+
+            else:
+                tag = format(job_num, '05')
+
+                f.write(f'JOB fetch_gstlal_triggers.{tag} fetch_gstlal_triggers.sub\n')
+                f.write(f'VARS fetch_gstlal_triggers.{tag} nodename="fetch_gstlal_triggers_{tag}" input_file_path="{loop_input_file_path}" output_path="{loop_output_file_path}" start="{start}" end="{end}" chunk="{args.chunk}" dir="{dir}" gps_target="{j}"\n')
+
+                job_num += 1
+
+
+        # Write the final job
+        f.write(f"JOB combine_trigger_files combine_trigger_files.sub\n")
+
+        # Write the dependencies
+        f.write("PARENT ")
+        for j in range(0, 9):
+            job_id = f"fetch_gstlal_triggers.{i:05d}"
+        f.write(f"{job_id} ")
+        f.write("CHILD combine_trigger_files\n")
 
         #job_num += 1
         #

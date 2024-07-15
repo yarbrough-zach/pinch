@@ -1,1 +1,1 @@
-# Trigger to Glitch Simiarity Test (TGST)
+# Pipeline-Informed Noise CHaracterization (PINCH) 

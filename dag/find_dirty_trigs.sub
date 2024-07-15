@@ -1,0 +1,15 @@
+universe = vanilla
+executable = /home/zach.yarbrough/pycbc_triggers/tgst/tgst/scripts/find_dirty_trigs.py
+arguments = --pipeline $(pipeline) --pipeline-triggers $(pipeline_triggers) --omicron-triggers-H1 $(omicron_triggers_h1) --omicron-triggers-L1 $(omicron_triggers_l1) --clean-output $(clean_output) --dirty-output $(dirty_output) --other-output $(other_output) --query --chunk-definition-file $(chunk_definition_file) --chunk $(chunk) --tag $(tag) 
+request_cpus = 1
+request_memory = 10000
+request_disk = 3GB
+getenv = True
+accounting_group_user = zach.yarbrough
+accounting_group  = ligo.dev.o4.detchar.explore.test
+output = logs/find_dirty_trigs.out
+error = logs/find_dirty_trigs.err
+log = logs/find_dirty_trigs.log
+success_exit_code = 0
+
+queue

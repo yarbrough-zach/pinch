@@ -20,11 +20,27 @@ else:
     chunk = str(args.input_path.split('/')[-1].split('k')[-1])
 
 combined_df = pd.DataFrame()
+
+chunk_size = 20000
+
+output_file = os.path.join(args.output_path, f'pycbc_chunk{chunk}.csv')
+
+first_file = True
+
 for file in files:
     print(file)
-    file_df = pd.read_csv(os.path.join(args.input_path, file))
+    file_path = os.path.join(args.input_path, file)
 
-    combined_df = pd.concat([combined_df, file_df], ignore_index=True)
+    for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+        if first_file:
+            chunk.to_csv(output_file, mode='w', header=True, index=False)
+            first_file = False
+        else:
+            chunk.to_csv(output_file, mode='a', header=False, index=False)
 
-combined_df.to_csv(os.path.join(output_path, f'gstlal_chunk{chunk}.csv'))
+    #file_df = pd.read_csv(os.path.join(args.input_path, file))
+
+    #combined_df = pd.concat([combined_df, file_df], ignore_index=True)
+
+#combined_df.to_csv(os.path.join(output_path, f'gstlal_chunk{chunk}.csv'))
 print('combined df saved')
