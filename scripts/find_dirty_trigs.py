@@ -22,6 +22,7 @@ parser.add_argument('--other-output', type=str)
 parser.add_argument('--query', action='store_true')
 parser.add_argument('--chunk-definition-file', type=str)
 parser.add_argument('--chunk', type=str)
+parser.add_argument('--ml-confidence', type=float)
 parser.add_argument('--tag', type=str)
 args = parser.parse_args()
 
@@ -47,7 +48,10 @@ if args.query and args.chunk_definition_file and args.chunk:
 
     wait_time = np.random.uniform(30, 300)
     time.sleep(wait_time)
-    gspy = GravitySpyEvents(t_start = start, t_end = end)
+    if args.ml_confidence:
+        gspy = GravitySpyEvents(t_start = start, t_end = end, confidence = args.ml_confidence)
+    else:
+        gspy = GravitySpyEvents(t_start = start, t_end = end)
     glitches = gspy.fetch_gravity_spy_events()
     glitches = glitches.to_pandas()
     print(f"Len final glitch df: {len(glitches)}")

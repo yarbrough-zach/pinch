@@ -5,10 +5,11 @@ from gwpy.table import GravitySpyTable
 
 # export authentication for gspy database
 class GravitySpyEvents:
-    def __init__(self, t_start=None, t_end=None, ml_label=None):
+    def __init__(self, t_start=None, t_end=None, ml_label=None, confidence=0.9):
         self.start = t_start
         self.end = t_end
         self.ml_label = ml_label
+        self.confidence = confidence
 
     def fetch_gravity_spy_events(self): 
         
@@ -18,7 +19,7 @@ class GravitySpyEvents:
   
         else:
             glitches = GravitySpyTable.fetch("gravityspy", "glitches_v2d0", 
-            selection=f"event_time > {self.start} && event_time < {self.end} && ml_label={self.ml_label} && confidence >=0.9")
+            selection=f"event_time > {self.start} && event_time < {self.end} && ml_label={self.ml_label} && confidence >={self.confidence}")
             
         if not glitches:
             raise ValueError("No glitches retured for query")
