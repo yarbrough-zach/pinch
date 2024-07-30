@@ -20,6 +20,7 @@ parser.add_argument('--clean-output', type=str)
 parser.add_argument('--dirty-output', type=str)
 parser.add_argument('--other-output', type=str)
 parser.add_argument('--query', action='store_true')
+parser.add_argument('--wait', action='store_true')
 parser.add_argument('--chunk-definition-file', type=str)
 parser.add_argument('--chunk', type=str)
 parser.add_argument('--ml-confidence', type=float)
@@ -45,9 +46,14 @@ if args.query and args.chunk_definition_file and args.chunk:
     
     chunkparse = ChunkParse()
     start, end = chunkparse.parse_chunk_file(args.chunk, args.chunk_definition_file)
+    print(start, end)
+    
+    if args.wait:
+        wait_time = np.random.uniform(30, 300)
+        print('querying, please wait for random sleep time', wait_time)
+    
+        time.sleep(wait_time)
 
-    wait_time = np.random.uniform(30, 300)
-    time.sleep(wait_time)
     if args.ml_confidence:
         gspy = GravitySpyEvents(t_start = start, t_end = end, confidence = args.ml_confidence)
     else:
@@ -88,7 +94,13 @@ omics['GPStime'] = omics['peak_time'] + 1e-9*omics['peak_time_ns']
 print(f"Trigger file: {args.pipeline_triggers}")
 
 if args.pipeline == 'gstlal':
-    triggers = pd.read_csv(f"{args.pipeline_triggers}", index_col = 0)
+    trigger_files = [os.path.join(args.pipeline_triggers, file) for file in os.listdir(args.pipeline_triggers)]
+    triggers = pd.DataFrame()
+    
+    for file in trigger_files:
+        df = pd.read_csv(os.path.join(args.pipeline_triggers, file))
+        triggers = pd.concat([triggers, df], ignore_index=True)
+        #triggers = pd.read_csv(f"{args.pipeline_triggers}", index_col = 0)
 
 elif args.pipeline == 'pycbc':
 
@@ -134,6 +146,9 @@ for i, glitch in glitches_temp.iterrows():
         print(str(count) + " / " + str(len(glitches_temp)))
 
     ifo = glitch['ifo']
+
+    if ifo == 'V1':
+        continue
 
     if args.pipeline == 'gstlal':
         triggers_in_glitch_mask = (triggers['start_time'] <= glitch["tend"]) & (triggers['GPStime'] >= glitch["tstart"])
