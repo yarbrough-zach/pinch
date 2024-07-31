@@ -29,6 +29,19 @@ args = parser.parse_args()
 
 #trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])[:1]
 
+if not os.isdir(args.clean_output):
+    raise ValueError(f"{args.clean_output} does not exist")
+
+elif not os.isdir(args.dirty_output):
+    raise ValueError(f"{args.dirty_output} does not exist")
+
+elif not os.isdir(args.other_output):
+    raise ValueError(f"{args.other_output} does not exist")
+
+else:
+    print(f"All output dirs exist, continuing...")
+
+
 if args.query and args.chunk_definition_file and args.chunk:
 
     #chunk_dict = {}
