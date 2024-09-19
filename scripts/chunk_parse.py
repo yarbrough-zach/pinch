@@ -1,4 +1,4 @@
-#! /usr/bin/env/ python3
+#!/usr/bin/env python3
 
 import argparse
 import pandas as pd
@@ -37,3 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--chunk-definition-file', type=str)
     parser.add_argument('--chunk', type=str)
     args = parser.parse_args()
+
+    chunkparse = ChunkParse()
+    start, end = chunkparse.parse_chunk_file(args.chunk, args.chunk_definition_file)
+    print(start, end)
