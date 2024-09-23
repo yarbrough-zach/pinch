@@ -70,7 +70,7 @@ if args.query and args.chunk_definition_file and args.chunk:
     if args.ml_confidence:
         gspy = GravitySpyEvents(t_start = start, t_end = end, confidence = args.ml_confidence)
     else:
-        gspy = GravitySpyEvents(t_start = start, t_end = end)
+        gspy = GravitySpyEvents(t_start = start, t_end = end, confidence=0.9)
     glitches = gspy.fetch_gravity_spy_events()
     glitches = glitches.to_pandas()
     print(f"Len final glitch df: {len(glitches)}")
