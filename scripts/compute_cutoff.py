@@ -140,10 +140,10 @@ if machine_learning_cutoff:
             
                 for param in cutoff_params:
                     if param not in ifo_triggers[ifo].columns:
-                        ifo_triggers[ifo][param] = formula(ifo_triggers[ifo], param)
+                        ifo_triggers[ifo].loc[:, param] = formula(ifo_triggers[ifo], param)
                 data = ifo_triggers[ifo][cutoff_params].values
                 scaled_data = scaler.transform(data)
-                ifo_triggers[ifo]['vsv'] = -clf.decision_function(scaled_data)
+                ifo_triggers[ifo].loc[:, 'vsv'] = -clf.decision_function(scaled_data)
             new_df = pd.concat([ifo_triggers['H1'], ifo_triggers['L1']])
             new_df.to_csv(file)    
 
