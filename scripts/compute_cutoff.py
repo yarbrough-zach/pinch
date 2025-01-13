@@ -143,7 +143,15 @@ if machine_learning_cutoff:
                         ifo_triggers[ifo].loc[:, param] = formula(ifo_triggers[ifo], param)
                 data = ifo_triggers[ifo][cutoff_params].values
                 scaled_data = scaler.transform(data)
+
+                # if you're reading this, you might be concerned about the sign of the SVM score --
+                # decision_function returns a value "in such a way that negative values are outliers 
+                # and non-negative ones are inliers"
+                # so since we train on clean triggers, dirty triggers will score very negative by default
+                # so we flip it for convention and ease of use
+                # tl;dr higher value, more glitchy
                 ifo_triggers[ifo].loc[:, 'vsv'] = -clf.decision_function(scaled_data)
+
             new_df = pd.concat([ifo_triggers['H1'], ifo_triggers['L1']])
             new_df.to_csv(file)    
 
