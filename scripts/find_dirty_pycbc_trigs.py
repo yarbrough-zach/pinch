@@ -127,6 +127,7 @@ def extract_pycbc_data(file_path):
 
     with h5py.File(file_path, 'r') as h5_file:
 
+        # FIXME do for both ifos
         l1_group = h5_file['L1']
 
         data = {}
