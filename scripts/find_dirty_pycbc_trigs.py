@@ -9,25 +9,27 @@ import argparse
 import time
 
 from get_gspy_events import GravitySpyEvents
-from chunk_parse import ChunkParse 
+from chunk_parse import ChunkParse
+from omicron_finder import OmicronFinder
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path-to-pipeline-triggers', type=str)
+parser.add_argument('--path-to-pipeline-triggers', type=str, help='path on current cluster to pycbc h5 trigger files')
+parser.add_argument('--start', type=int, help='alternative method if chunk not provided')
+parser.add_argument('--end', type=int, help='alternative method if chunk not provided')
 parser.add_argument('--gspy-triggers', type=str)
 parser.add_argument('--omicron-triggers-H1', type=str)
 parser.add_argument('--omicron-triggers-L1', type=str)
-parser.add_argument('--clean-output', type=str)
-parser.add_argument('--dirty-output', type=str)
-parser.add_argument('--other-output', type=str)
-parser.add_argument('--query', action='store_true')
-parser.add_argument('--wait', action='store_true')
-parser.add_argument('--chunk-definition-file', type=str)
-parser.add_argument('--chunk', type=str)
-parser.add_argument('--ml-confidence', type=float)
-parser.add_argument('--tag', type=str)
+parser.add_argument('--clean-output', type=str, help='where you would like csvs of clean triggers to be stored')
+parser.add_argument('--dirty-output', type=str, help='where you would like csvs of dirty triggers to be stored')
+parser.add_argument('--other-output', type=str, help='where you would like csvs of other triggers to be stored')
+parser.add_argument('--query', action='store_true', help='bool, whether or not to query gravity spy database for given times')
+parser.add_argument('--wait', action='store_true', help='bool, adds random timeout to help against gravity spy database restrictions')
+parser.add_argument('--ml-confidence', type=float, help='optional confidence cut for gravity spy query')
+parser.add_argument('--chunk-definition-file', type=str, help='path to chunk definition txt file')
+parser.add_argument('--chunk', type=str, help='chunk you wish to analyze')
+parser.add_argument('--tag', type=str, help='optional tag to add to filenames')
 args = parser.parse_args()
 
-#trigger_files = sorted([raw_trigger_dir + f for f in os.listdir(raw_trigger_dir) if f.endswith('.csv')])[:1]
 
 if not os.path.isdir(args.clean_output):
     raise ValueError(f"{args.clean_output} does not exist")
@@ -41,26 +43,24 @@ elif not os.path.isdir(args.other_output):
 else:
     print(f"All output dirs exist, continuing...")
 
-
-if args.query and args.chunk_definition_file and args.chunk:
-
-    #chunk_dict = {}
-    #with open(args.chunk_definition_file, "r") as file:
-    #    lines = file.readlines()
-
-     #   for line in lines:
-     #       elements = line.split()
-     #       chunk_dict[elements[0]] = [elements[1], elements[2]]
-
-    #del chunk_dict['#']
-
-    #start = chunk_dict[args.chunk][0]
-    #end = chunk_dict[args.chunk][1]
-    
+# read chunk definition file if provided, parse chunks
+if args.chunk_definition_file and args.chunk:
     chunkparse = ChunkParse()
     start, end = chunkparse.parse_chunk_file(args.chunk, args.chunk_definition_file)
     print(start, end)
-    
+
+elif args.start and args.end:
+    start = args.start
+    end = args.end
+
+else:
+    raise ValueError('Invalid combination of time inputs provided. '
+        'Please provide either chunk number and chunk defiunition file ' 
+        'or start and end gps times')
+
+# gravity spy
+if args.query:
+ 
     if args.wait:
         wait_time = np.random.uniform(30, 300)
         print('querying, please wait for random sleep time', wait_time)
@@ -69,8 +69,10 @@ if args.query and args.chunk_definition_file and args.chunk:
 
     if args.ml_confidence:
         gspy = GravitySpyEvents(t_start = start, t_end = end, confidence = args.ml_confidence)
+
     else:
         gspy = GravitySpyEvents(t_start = start, t_end = end, confidence=0.9)
+    
     glitches = gspy.fetch_gravity_spy_events()
     glitches = glitches.to_pandas()
     print(f"Len final glitch df: {len(glitches)}")
@@ -83,10 +85,20 @@ else:
     raise ValueError('Improper combination of arguments passed for gspy glitches, please query with chunk definition file or provide gspy file.')
 
 # omicron triggers
-H1_omics = pd.read_csv(args.omicron_triggers_H1, index_col = 0)
-L1_omics = pd.read_csv(args.omicron_triggers_L1, index_col = 0)
+# should we allow them to be passed as arguments still?
 
-omics = pd.concat([H1_omics, L1_omics])
+# H1_omics = pd.read_csv(args.omicron_triggers_H1, index_col = 0)
+# L1_omics = pd.read_csv(args.omicron_triggers_L1, index_col = 0)
+
+omic = OmicronFinder()
+ifo = omic.det_site()
+omics = omic.fetch_and_save_omicron(start, end)
+
+if omics.empty:
+    raise RuntimeError("No omicron triggers returned from OmicronFinder")
+
+else:
+    print(f"{len(omics)} omicron triggers found...")
 
 omicron_snr_cutoff = 5.5
 
@@ -95,24 +107,23 @@ print("Omicron Size Original: ", len(omics))
 omics = omics[omics['snr'] >= omicron_snr_cutoff]
 print("Omicron Size SNR Reduced: ", len(omics))
 
+
 # construct stard and end times for glitches
+glitches['peak_time'] = pd.to_numeric(glitches['peak_time'], errors='coerce')
+glitches['peak_time_ns'] = pd.to_numeric(glitches['peak_time_ns'], errors='coerce')
+glitches['duration'] = pd.to_numeric(glitches['duration'], errors='coerce')
+
 glitches['tstart'] = (glitches['peak_time'] + 1e-9*glitches['peak_time_ns']) - glitches['duration']/2
 glitches['tend'] = (glitches['peak_time'] + 1e-9*glitches['peak_time_ns']) + glitches['duration']/2
 
 # construct start and end times for omicron triggers
-omics['tend'] = (omics['peak_time'] + 1e-9*omics['peak_time_ns']) - omics['duration']/2
-omics['tstart'] = (omics['peak_time'] + 1e-9*omics['peak_time_ns']) + omics['duration']/2
-omics['GPStime'] = omics['peak_time'] + 1e-9*omics['peak_time_ns']
+#omics['tend'] = (omics['peak_time'] + 1e-9*omics['peak_time_ns']) - omics['duration']/2
+#omics['tstart'] = (omics['peak_time'] + 1e-9*omics['peak_time_ns']) + omics['duration']/2
+#omics['GPStime'] = omics['peak_time'] + 1e-9*omics['peak_time_ns']
 
-
-#elif args.pipeline == 'pycbc':
-#
-#    if args.nrows:
-#        triggers = pd.read_csv(f"{args.pipeline_triggers}", nrows=args.nrows) #nrows = 1000000
-#    else:
-#        triggers = pd.read_csv(f"{args.pipeline_triggers}")
-
-# assume we have pycbc triggers
+#omics['tend'] = (omics['time'] + 1e-9*omics['time_ns']) - omics['duration']/2
+#omics['tstart'] = (omics['time'] + 1e-9*omics['time_ns']) + omics['duration']/2
+omics['GPStime'] = omics['time']
 
 def extract_pycbc_data(file_path):
 
@@ -127,13 +138,12 @@ def extract_pycbc_data(file_path):
 
     with h5py.File(file_path, 'r') as h5_file:
 
-        # FIXME do for both ifos
-        l1_group = h5_file['L1']
+        # ifo provided by socket in OmicronFinder
+        group = h5_file[ifo]
 
         data = {}
 
-        recursively_extract(l1_group)
-        #print(data.keys())
+        recursively_extract(group)
         
         for key in ['gates', 'loudest', 'psd']:
             if key in data.keys():
@@ -150,7 +160,6 @@ def find_dirty_trigs(triggers, glitches, omics):
     print('Finding dirty trigs...')
     
     triggers['GPStime'] = triggers.end_time
-    triggers['ifo'] = 'L1'
 
     glitchIDs = ['None']*len(triggers)
     omicIDs = [-1]*len(triggers)
@@ -165,7 +174,7 @@ def find_dirty_trigs(triggers, glitches, omics):
     print(f"len glitches_temp: {len(glitches_temp)}")
     omics_temp = omics[omic_time_mask]
     print("Omicron Size Time Constrained: ", len(omics_temp))  
-    ifo_mask = {'H1':triggers['ifo'] == 'H1', 'L1':triggers['ifo'] == 'L1'}
+    #ifo_mask = {'H1':triggers['ifo'] == 'H1', 'L1':triggers['ifo'] == 'L1'}
 
     count = 0
     for i, glitch in glitches_temp.iterrows():
@@ -179,8 +188,9 @@ def find_dirty_trigs(triggers, glitches, omics):
             continue
 
         triggers_in_glitch_mask = (triggers['GPStime'] <= glitch["tend"]) & (triggers['GPStime'] >= glitch["tstart"])
-        triggers_in_glitch = triggers[triggers_in_glitch_mask & ifo_mask[ifo]]
-        
+        #triggers_in_glitch = triggers[triggers_in_glitch_mask & ifo_mask[ifo]]
+        triggers_in_glitch = triggers[triggers_in_glitch_mask]
+
         indexes = triggers_in_glitch.index
         for idx in indexes:
             glitchIDs[idx] = glitch['gravityspy_id']
@@ -188,12 +198,12 @@ def find_dirty_trigs(triggers, glitches, omics):
         
     count = 0
     for i, omic in omics_temp.iterrows():
-        ifo = omic['ifo']
         if count % 1000 == 0:
             print(str(count) + " / " + str(len(omics_temp)))
 
         triggers_in_omic_mask = (triggers['GPStime'] <= omic["tend"]) & (triggers['GPStime'] >= omic["tstart"])
-        triggers_in_omic = triggers[triggers_in_omic_mask & ifo_mask[ifo]]
+        #triggers_in_omic = triggers[triggers_in_omic_mask & ifo_mask[ifo]]
+        triggers_in_omic = triggers[triggers_in_omic_mask]
         
         if count % 1000 == 0:
             print(f"len triggers_in_omic: {len(triggers_in_omic)}")
@@ -248,18 +258,35 @@ def save_and_reset(df, kind, count, path):
 
 max_rows = 1_000_000
 
-pycbc_files = [f"{args.path_to_pipeline_triggers}{file}" for file in os.listdir(args.path_to_pipeline_triggers) if file.endswith('.hdf') and file.startswith('H1L1')]
+pycbc_files = [
+    os.path.join(args.path_to_pipeline_triggers, file)
+    for file in os.listdir(args.path_to_pipeline_triggers)
+    if file.endswith('.hdf') and (file.startswith('H1L1') or file.startswith('H1L1V1'))]
+
 print(f"Found {len(pycbc_files)} trigger files...")
+
+if not len(pycbc_files):
+    raise RuntimeError("No pycbc trigger files found")
 
 clean_counter = 0
 dirty_counter = 0
 other_counter = 0
 
+clean = pd.DataFrame() 
+dirty = pd.DataFrame()
+other = pd.DataFrame()
+
 for i, file in enumerate(pycbc_files):
     print(file)
 
-    if i == 0:
+    if (not len(clean) and not len(other) and not len(dirty)):
+
         df = pd.DataFrame(extract_pycbc_data(file))
+
+        if df.empty:
+            print('empty df')
+            continue
+        
         df = df[df['snr'] >= 4]
 
         clean, dirty, other = find_dirty_trigs(df, glitches, omics)
