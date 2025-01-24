@@ -12,8 +12,6 @@ from gwpy.table import EventTable
 class OmicronFinder:
     def __init__(self, start, end):
         self.host = socket.getfqdn()
-        self.start = start
-        self.end = end
 
     def det_site(self):
         if self.host.split('.')[1] == 'ligo-la':
