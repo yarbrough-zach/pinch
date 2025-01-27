@@ -10,7 +10,7 @@ from gwpy.table import EventTable
 
 
 class OmicronFinder:
-    def __init__(self, start, end):
+    def __init__(self):
         self.host = socket.getfqdn()
 
     def det_site(self):
@@ -48,7 +48,7 @@ class OmicronFinder:
             raise RuntimeError("No omicron files found")
 
         omicron_events = EventTable.read(omicron_files, path='triggers') 
-        
+
         omicron_events = omicron_events.to_pandas()
 
         if save and output_path:
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    omic = OmicronFinder(args.start, args.end)
+    omic = OmicronFinder()
 
     if args.save and args.output_path:
         fetch_and_save_omicron(args.start, args.end, args.output_path, save=True)
