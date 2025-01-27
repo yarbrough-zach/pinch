@@ -19,6 +19,7 @@ parser.add_argument('--end', type=int, help='alternative method if chunk not pro
 parser.add_argument('--gspy-triggers', type=str)
 parser.add_argument('--omicron-triggers-H1', type=str)
 parser.add_argument('--omicron-triggers-L1', type=str)
+parser.add_argument('--omicron-snr-cut', type=float, help='snr value below which to exclude omicron triggers')
 parser.add_argument('--clean-output', type=str, help='where you would like csvs of clean triggers to be stored')
 parser.add_argument('--dirty-output', type=str, help='where you would like csvs of dirty triggers to be stored')
 parser.add_argument('--other-output', type=str, help='where you would like csvs of other triggers to be stored')
@@ -58,6 +59,36 @@ else:
         'Please provide either chunk number and chunk defiunition file ' 
         'or start and end gps times')
 
+# omicron triggers
+# should we allow them to be passed as arguments still?
+
+# H1_omics = pd.read_csv(args.omicron_triggers_H1, index_col = 0)
+# L1_omics = pd.read_csv(args.omicron_triggers_L1, index_col = 0)
+
+omic = OmicronFinder()
+ifo = omic.det_site()
+omics = omic.fetch_and_save_omicron(start, end)
+
+if omics.empty:
+    raise RuntimeError("No omicron triggers returned from OmicronFinder")
+
+else:
+    print(f"{len(omics)} omicron triggers found...")
+
+if args.omicron_snr_cut:
+    #omicron_snr_cutoff = 5.5
+
+    print("Omicron Size Original: ", len(omics))
+
+    omics = omics[omics['snr'] >= args.omicron_snr_cut]
+    print("Omicron Size SNR Reduced: ", len(omics))
+
+else:
+    print("Omicron Size Original: ", len(omics))
+    omics = omics[omics['snr'] >= 5.5]
+    
+    print("Omicron Size SNR Reduced: ", len(omics))
+
 # gravity spy
 if args.query:
  
@@ -84,29 +115,7 @@ elif args.gspy_triggers and not args.query:
 else:
     raise ValueError('Improper combination of arguments passed for gspy glitches, please query with chunk definition file or provide gspy file.')
 
-# omicron triggers
-# should we allow them to be passed as arguments still?
-
-# H1_omics = pd.read_csv(args.omicron_triggers_H1, index_col = 0)
-# L1_omics = pd.read_csv(args.omicron_triggers_L1, index_col = 0)
-
-omic = OmicronFinder()
-ifo = omic.det_site()
-omics = omic.fetch_and_save_omicron(start, end)
-
-if omics.empty:
-    raise RuntimeError("No omicron triggers returned from OmicronFinder")
-
-else:
-    print(f"{len(omics)} omicron triggers found...")
-
-omicron_snr_cutoff = 5.5
-
-print("Omicron Size Original: ", len(omics))
-
-omics = omics[omics['snr'] >= omicron_snr_cutoff]
-print("Omicron Size SNR Reduced: ", len(omics))
-
+glitches = glitches[glitches.ifo == ifo]
 
 # construct stard and end times for glitches
 glitches['peak_time'] = pd.to_numeric(glitches['peak_time'], errors='coerce')
