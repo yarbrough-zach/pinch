@@ -172,11 +172,13 @@ def find_dirty_trigs(triggers, glitches, omics):
     glitchIDs = ['None']*len(triggers)
     omicIDs = [-1]*len(triggers)
 
+    triggers['start_time'] = triggers['end_time'] - triggers['template_duration']
+
     #print(f"Triggers: {min(triggers.start_time)}, {max(triggers.GPStime)}")
     #print(f"Glitches: {min(glitches.tstart)}, {max(glitches.tend)}")
 
-    glitch_time_mask = (glitches['event_time'] >= min(triggers['end_time'])) & (glitches['event_time'] <= max(triggers['end_time']))
-    omic_time_mask = (omics['tend'] >= min(triggers['end_time'])) & (omics['tstart'] <= max(triggers['end_time']))
+    glitch_time_mask = (glitches['event_time'] >= min(triggers['start_time'])) & (glitches['event_time'] <= max(triggers['end_time']))
+    omic_time_mask = (omics['tend'] >= min(triggers['start_time'])) & (omics['tstart'] <= max(triggers['end_time']))
 
     glitches_temp = glitches[glitch_time_mask]
     print(f"len glitches_temp: {len(glitches_temp)}")
@@ -195,7 +197,7 @@ def find_dirty_trigs(triggers, glitches, omics):
         if ifo == 'V1':
             continue
 
-        triggers_in_glitch_mask = (triggers['end_time'] <= glitch["event_time"]) & (triggers['end_time'] >= glitch["event_time"])
+        triggers_in_glitch_mask = (triggers['start_time'] <= glitch["tend"]) & (triggers['end_time'] >= glitch["tstart"])
         #triggers_in_glitch = triggers[triggers_in_glitch_mask & ifo_mask[ifo]]
         triggers_in_glitch = triggers[triggers_in_glitch_mask]
 
@@ -209,7 +211,7 @@ def find_dirty_trigs(triggers, glitches, omics):
         if count % 1000 == 0:
             print(str(count) + " / " + str(len(omics_temp)))
 
-        triggers_in_omic_mask = (triggers['end_time'] <= omic["tend"]) & (triggers['end_time'] >= omic["tstart"])
+        triggers_in_omic_mask = (triggers['start_time'] <= omic["tend"]) & (triggers['end_time'] >= omic["tstart"])
         #triggers_in_omic = triggers[triggers_in_omic_mask & ifo_mask[ifo]]
         
         # find all pipeline triggers that overlap this ONE OMICRON TRIGGER
@@ -279,7 +281,10 @@ def save_and_reset(df, kind, count, path):
     elif kind == 'other':
         return pd.DataFrame(), other_counter + 1
 
-max_rows = 1_000_000
+# this might not be necessary
+max_rows = {'clean':1_000_000,
+        'dirty':100_000,
+        'other':1_000_000}
 
 pycbc_files = [
     os.path.join(args.path_to_pipeline_triggers, file)
@@ -313,7 +318,7 @@ for i, file in enumerate(pycbc_files):
             print('empty df')
             continue
         
-        df = df[df['snr'] >= 4]
+        df = df[df['snr'] >= 5]
 
         pycbc_df = pd.concat([pycbc_df, df])
         #clean, dirty, other = find_dirty_trigs(df, glitches, omics)
@@ -325,7 +330,7 @@ for i, file in enumerate(pycbc_files):
         if current_df.empty:
             continue
 
-        current_df = current_df[current_df['snr'] >= 4]
+        current_df = current_df[current_df['snr'] >= 5]
 
         pycbc_df = pd.concat([pycbc_df, current_df])
         
@@ -335,7 +340,7 @@ for i, file in enumerate(pycbc_files):
         #dirty = pd.concat([dirty, current_dirty], ignore_index=True)
         #other = pd.concat([other, current_other], ignore_index=True)
 
-    if len(pycbc_df) >= max_rows:
+    if len(pycbc_df) >= max_pycbc_rows:
         current_clean, current_dirty, current_other = find_dirty_trigs(pycbc_df, glitches, omics)
 
         clean = pd.concat([clean, current_clean], ignore_index=True)
@@ -344,13 +349,13 @@ for i, file in enumerate(pycbc_files):
 
         pycbc_df = pd.DataFrame()
 
-    if len(clean) > max_rows:
+    if len(clean) > max_rows['clean']:
         clean, clean_counter = save_and_reset(clean, "clean", clean_counter, args.clean_output)
 
-    if len(dirty) > max_rows:
+    if len(dirty) > max_rows['dirty']:
         dirty, dirty_counter = save_and_reset(dirty, "dirty", dirty_counter, args.dirty_output)
 
-    if len(other) > max_rows:
+    if len(other) > max_rows['other']:
         other, other_counter = save_and_reset(other, "other", other_counter, args.other_output)
 
 if not clean.empty:
