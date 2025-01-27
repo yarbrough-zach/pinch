@@ -159,7 +159,6 @@ def extract_pycbc_data(file_path):
 def find_dirty_trigs(triggers, glitches, omics):
     print('Finding dirty trigs...')
     
-    triggers['GPStime'] = triggers.end_time
 
     glitchIDs = ['None']*len(triggers)
     omicIDs = [-1]*len(triggers)
@@ -167,8 +166,8 @@ def find_dirty_trigs(triggers, glitches, omics):
     #print(f"Triggers: {min(triggers.start_time)}, {max(triggers.GPStime)}")
     #print(f"Glitches: {min(glitches.tstart)}, {max(glitches.tend)}")
 
-    glitch_time_mask = (glitches['tstart'] >= min(triggers['GPStime'])) & (glitches['tend'] <= max(triggers['GPStime']))
-    omic_time_mask = (omics['tend'] >= min(triggers['GPStime'])) & (omics['tstart'] <= max(triggers['GPStime']))
+    glitch_time_mask = (glitches['event_time'] >= min(triggers['end_time'])) & (glitches['event_time'] <= max(triggers['end_time']))
+    omic_time_mask = (omics['tend'] >= min(triggers['end_time'])) & (omics['tstart'] <= max(triggers['end_time']))
 
     glitches_temp = glitches[glitch_time_mask]
     print(f"len glitches_temp: {len(glitches_temp)}")
@@ -176,40 +175,47 @@ def find_dirty_trigs(triggers, glitches, omics):
     print("Omicron Size Time Constrained: ", len(omics_temp))  
     #ifo_mask = {'H1':triggers['ifo'] == 'H1', 'L1':triggers['ifo'] == 'L1'}
 
-    count = 0
+    #count = 0
     for i, glitch in glitches_temp.iterrows():
         
-        if count % 1000 == 0:
-            print(str(count) + " / " + str(len(glitches_temp)))
+        #if count % 1000 == 0:
+        #    print(str(count) + " / " + str(len(glitches_temp)))
 
         ifo = glitch['ifo']
 
         if ifo == 'V1':
             continue
 
-        triggers_in_glitch_mask = (triggers['GPStime'] <= glitch["tend"]) & (triggers['GPStime'] >= glitch["tstart"])
+        triggers_in_glitch_mask = (triggers['end_time'] <= glitch["event_time"]) & (triggers['end_time'] >= glitch["event_time"])
         #triggers_in_glitch = triggers[triggers_in_glitch_mask & ifo_mask[ifo]]
         triggers_in_glitch = triggers[triggers_in_glitch_mask]
 
         indexes = triggers_in_glitch.index
         for idx in indexes:
             glitchIDs[idx] = glitch['gravityspy_id']
-        count += 1
+        #count += 1
         
     count = 0
     for i, omic in omics_temp.iterrows():
         if count % 1000 == 0:
             print(str(count) + " / " + str(len(omics_temp)))
 
-        triggers_in_omic_mask = (triggers['GPStime'] <= omic["tend"]) & (triggers['GPStime'] >= omic["tstart"])
+        triggers_in_omic_mask = (triggers['end_time'] <= omic["tend"]) & (triggers['end_time'] >= omic["tstart"])
         #triggers_in_omic = triggers[triggers_in_omic_mask & ifo_mask[ifo]]
-        triggers_in_omic = triggers[triggers_in_omic_mask]
         
-        if count % 1000 == 0:
-            print(f"len triggers_in_omic: {len(triggers_in_omic)}")
+        # find all pipeline triggers that overlap this ONE OMICRON TRIGGER
+        triggers_in_omic = triggers[triggers_in_omic_mask]
+       
+        # find row numbers in triggers dataframe for the affected pipeline trigers
         indexes = triggers_in_omic.index
+
+        # assign unique omicron value to these affected pipeline triggers
+        # but we now know that the event_id param is useless, just an int
+        # but makes the idx'th row of the omicIDs dict NOT -1
         for idx in indexes:
-            omicIDs[idx] = omic['event_id']
+            #omicIDs[idx] = omic['event_id']
+            omicIDs[idx] = i
+
         count += 1
 
     triggers['glitch_id'] = glitchIDs
@@ -217,25 +223,33 @@ def find_dirty_trigs(triggers, glitches, omics):
 
     glitches['glitch_id'] = glitches['gravityspy_id']
     mask_glitch = (triggers['glitch_id'] != 'None')
-    print(f"Len of true mask glitch: {len(mask_glitch)}")
+    mask_dirty = (triggers['glitch_id'] != 'None') | (triggers['omic_id'] != -1)
 
-    mask_other = (triggers['glitch_id'] == 'None') & (triggers['omic_id'] == 1)
+    # any trigger with an omic_id that is not -1 is dirty, which holds no matter the event_id
+    # they could all be 5 and it wouldn't matter
+    # this can also be replaced with ~mask_dirty, worth considering
     mask_clean = (triggers['glitch_id'] == 'None') & (triggers['omic_id'] == -1)
-
+    
+    # this is meaningless, though
+    mask_other = (triggers['glitch_id'] == 'None') & (triggers['omic_id'] == 1)
+    
     print(f"Len triggers with mask glitch: {len(triggers[mask_glitch])}")
     
-    triggers_dirty = triggers[mask_glitch].copy()
+    # dirty triggers are only ones assigned to gspy glitches 
+    triggers_glitch = triggers[mask_glitch].copy()
+    triggers_dirty = triggers[mask_dirty].copy()
+
     print(f"len triggers_dirty: {len(triggers_dirty)}")
     
     triggers_other = triggers[mask_other].copy()
     triggers_clean = triggers[mask_clean].copy()
 
+    # merge trigger dfs with the glitch dfs to retain glitch info
     triggers_dirty = triggers_dirty.merge(glitches[['glitch_id','ml_confidence', 'ml_label']], on='glitch_id', how='left')
     print(f"len triggers_dirty after merge: {len(triggers_dirty)}")
 
     triggers_other = pd.concat([triggers_other, triggers_dirty[triggers_dirty['ml_confidence'] < 0.9]])
     #triggers_dirty = triggers_dirty[triggers_dirty['confidence'] >= 0.9]
-    print(f"len triggers_Dirty after confidence cut: {len(triggers_dirty)}")
 
     #triggers_clean.to_csv(f"{args.clean_output}/clean_chunk{args.chunk}_{args.tag}.csv")
     #triggers_dirty.to_csv(f"{args.dirty_output}/dirty_chunk{args.chunk}_{args.tag}.csv")
@@ -275,12 +289,15 @@ other_counter = 0
 clean = pd.DataFrame() 
 dirty = pd.DataFrame()
 other = pd.DataFrame()
+pycbc_df = pd.DataFrame()
+
+max_pycbc_rows = 1_000_000
 
 for i, file in enumerate(pycbc_files):
     print(file)
 
-    if (not len(clean) and not len(other) and not len(dirty)):
-
+    #if (not len(clean) and not len(other) and not len(dirty)):
+    if not len(pycbc_df):
         df = pd.DataFrame(extract_pycbc_data(file))
 
         if df.empty:
@@ -289,8 +306,9 @@ for i, file in enumerate(pycbc_files):
         
         df = df[df['snr'] >= 4]
 
-        clean, dirty, other = find_dirty_trigs(df, glitches, omics)
-        print(len(clean), len(dirty), len(other))
+        pycbc_df = pd.concat([pycbc_df, df])
+        #clean, dirty, other = find_dirty_trigs(df, glitches, omics)
+        #print(len(clean), len(dirty), len(other))
 
     else:
         current_df = pd.DataFrame(extract_pycbc_data(file))
@@ -299,12 +317,23 @@ for i, file in enumerate(pycbc_files):
             continue
 
         current_df = current_df[current_df['snr'] >= 4]
+
+        pycbc_df = pd.concat([pycbc_df, current_df])
         
-        current_clean, current_dirty, current_other = find_dirty_trigs(current_df, glitches, omics)
+        #current_clean, current_dirty, current_other = find_dirty_trigs(current_df, glitches, omics)
+
+        #clean = pd.concat([clean, current_clean], ignore_index=True)
+        #dirty = pd.concat([dirty, current_dirty], ignore_index=True)
+        #other = pd.concat([other, current_other], ignore_index=True)
+
+    if len(pycbc_df) >= max_rows:
+        current_clean, current_dirty, current_other = find_dirty_trigs(pycbc_df, glitches, omics)
 
         clean = pd.concat([clean, current_clean], ignore_index=True)
         dirty = pd.concat([dirty, current_dirty], ignore_index=True)
         other = pd.concat([other, current_other], ignore_index=True)
+
+        pycbc_df = pd.DataFrame()
 
     if len(clean) > max_rows:
         clean, clean_counter = save_and_reset(clean, "clean", clean_counter, args.clean_output)
