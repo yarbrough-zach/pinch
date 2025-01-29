@@ -118,12 +118,8 @@ else:
 glitches = glitches[glitches.ifo == ifo]
 
 # construct stard and end times for glitches
-glitches['peak_time'] = pd.to_numeric(glitches['peak_time'], errors='coerce')
-glitches['peak_time_ns'] = pd.to_numeric(glitches['peak_time_ns'], errors='coerce')
-glitches['duration'] = pd.to_numeric(glitches['duration'], errors='coerce')
-
-glitches['tstart'] = (glitches['peak_time'] + 1e-9*glitches['peak_time_ns']) - glitches['duration']/2
-glitches['tend'] = (glitches['peak_time'] + 1e-9*glitches['peak_time_ns']) + glitches['duration']/2
+glitches['tstart'] = glitches['event_time'] - glitches['duration']/2
+glitches['tend'] = glitches['event_time'] + glitches['duration']/2
 
 # construct start and end times for omicron triggers
 #omics['tend'] = (omics['peak_time'] + 1e-9*omics['peak_time_ns']) - omics['duration']/2
