@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pinch"
+version = "0.1.0"
+description = "Association of pipeline triggers with the glitches that cause them"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+]
+
+[project.scripts]
+find_dirty_triggers = "pinch.find_dirty_triggers:main"
+train_and_score_dirty_triggers = "pinch.train_score_svm:main"
+#gspy_query = "pinch.utils.gspy_handler:main"
