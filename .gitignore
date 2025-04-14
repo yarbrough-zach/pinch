@@ -1,12 +1,21 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Installer-generated files
+*.egg-info/
+build/
+dist/
+
+# Environment files
+.env
+.venv
+*.env
+*.venv
+
+# Jupyter checkpoints
 .ipynb_checkpoints/
-**/.ipynb_checkpoints/
-.nfs0000000000ab93a000000720
-data/pycbc/*
-data/gstlal/*
-data/glitch/*
-logs/
-logs/*
-temp/
-old/
-.nfs*
-prototyping/*
+
+# OS files
+.DS_Store
+Thumbs.db
