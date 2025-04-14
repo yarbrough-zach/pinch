@@ -158,7 +158,10 @@ def main():
 
     for ifo in args.ifos:
         print(ifo)
-        args.omicron_path = omicron_path_dict[ifo]
+
+        if args.omicron:
+            args.omicron_path = omicron_path_dict[ifo]
+
         pipeline = OverlapPipeline(ifo, args)
 
         pipeline.run()
