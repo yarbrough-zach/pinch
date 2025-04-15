@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
 import pandas as pd
 
@@ -29,13 +28,13 @@ class SVMPipeline:
             trainer=None,
             model_path=None,
             output_path=None,
-        ):
-            self.clean_df = clean_df
-            self.dirty_df = dirty_df
-            self.trainer = trainer
-            self.model_path = model_path
-            self.output_path = output_path
-            self.scored_df = None
+    ):
+        self.clean_df = clean_df
+        self.dirty_df = dirty_df
+        self.trainer = trainer
+        self.model_path = model_path
+        self.output_path = output_path
+        self.scored_df = None
 
     def train(self, save_model=False):
         """
