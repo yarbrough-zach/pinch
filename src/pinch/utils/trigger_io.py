@@ -5,15 +5,16 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 
+
 class TIO:
     def __init__(
             self,
             input_path=None,
             output_path=None,
     ):
-            self.input_path=input_path
-            self.output_path=output_path
-    
+        self.input_path = input_path
+        self.output_path = output_path
+
     @staticmethod
     def determine_input_type(path):
         if os.path.isdir(path):
@@ -26,7 +27,7 @@ class TIO:
     @staticmethod
     def determine_ifos(df):
         return np.unique(df['ifo'])
-    
+
     @staticmethod
     def multiple_ifos(df):
         """
@@ -47,7 +48,7 @@ class TIO:
         """
         ifos = np.unique(df['ifo'])
 
-        return {ifo: df[df['ifo']==ifo] for ifo in ifos}
+        return {ifo: df[df['ifo'] == ifo] for ifo in ifos}
 
     @classmethod
     def read(cls, input_path):
@@ -61,7 +62,7 @@ class TIO:
             raise ValueError('Input path is neither path nor file')
 
         return data
-    
+
     @classmethod
     def _read_files_in_dir(cls, path):
         """
@@ -74,16 +75,16 @@ class TIO:
                 full_path = os.path.join(path, file)
                 df = pd.read_csv(full_path)
 
-                for ifo in self.determine_ifos(df):
+                for ifo in cls.determine_ifos(df):
                     dfs[ifo].append(df)
-        
+
         for ifo in dfs.keys():
             dfs[ifo] = pd.concat(dfs[ifo], ignore_index=True)
 
         return dfs
-    
+
     @classmethod
     def _read_file(cls, path):
         df = pd.read_csv(path)
-        
+
         return cls.separate_by_ifo(df)
