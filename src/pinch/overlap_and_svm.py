@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
 
 from pinch.pipelines.overlap_pipeline import OverlapPipeline
 from pinch.pipelines.svm_pipeline import SVMPipeline
@@ -13,19 +12,19 @@ def parse_args():
     parser.add_argument('--ifos', required=True, nargs='+', help='IFOs to analyze')
     parser.add_argument('--pipeline-triggers', required=True, help='Path to pipeline trigger CSVs')
     parser.add_argument('--output-dir', required=True, help='Path to write output CSVs')
-   
+
     parser.add_argument('--gspy', action='store_true', help='Enable Gravity Spy overlap')
     parser.add_argument('--omicron', action='store_true', help='Enable Omicron overlap')
     parser.add_argument(
             '--omicron-paths',
             type=str,
             help='Comma-separated list of IFO:path_to_omicron_csv pairs; e.g., H1:path/H1.csv,L1:/path/L1.csv')
-   
+
     parser.add_argument('--save-model', action='store_true', help='Save the trained SVM model')
     parser.add_argument('--model-path', default='trained_svm.pkl', help='Path to save/load the SVM model')
     parser.add_argument('--score-only', action='store_true', help='Skip training and only score dirty tiggers')
     parser.add_argument('--scored-output-path', required=True, help='Base path to write SVM-scored CSVs')
- 
+
     return parser.parse_args()
 
 
@@ -71,7 +70,7 @@ def main():
 
         clean_df = overlap.separated_triggers.get("clean")
         dirty_df = overlap.separated_triggers.get("dirty")
-        
+
         print('len clean df:', len(clean_df))
 
         svm = SVMPipeline(
@@ -88,6 +87,7 @@ def main():
         output_path = f"{args.scored_output_path}/{ifo}_scored_output.csv"
         print(output_path)
         scored_df.to_csv(f"{output_path}")
+
 
 if __name__ == '__main__':
     main()
