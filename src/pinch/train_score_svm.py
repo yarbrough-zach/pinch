@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+# This is probably deprecated
+
+import argparse
+from pinch.models.svm_pipeline import SVMPipeline
+
+
+def parse_args():
+    """
+    Parse command-line arguments for SVM training and scoring.
+
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description="Train and/or apply an OC-SVM to glitch trigger data")
+    subparsers = parser.add_subparsers(dest="mode", required=True)
+
+    # --- TRAIN MODE ---
+    train_parser = subparsers.add_parser("train", help="Train an SVM model on clean triggers")
+    train_parser.add_argument("--clean-triggers", required=True)
+    train_parser.add_argument("--save-model", action="store_true")
+    train_parser.add_argument("--model-path", default="trained_svm.pkl")
+
+    # --- SCORE MODE ---
+    score_parser = subparsers.add_parser("score", help="Score dirty triggers using trained model")
+    score_parser.add_argument("--dirty-triggers", required=True)
+    score_parser.add_argument("--model-path", required=True)
+    score_parser.add_argument("--output-path", required=True)
+
+    # --- TRAIN AND SCORE MODE ---
+    both_parser = subparsers.add_parser("train_and_score", help="Train and immediately score triggers")
+    both_parser.add_argument("--clean-triggers", required=True)
+    both_parser.add_argument("--dirty-triggers", required=True)
+    both_parser.add_argument("--output-path", required=True)
+    both_parser.add_argument("--save-model", action="store_true")
+    both_parser.add_argument("--model-path", default="trained_svm.pkl")
+
+    return parser.parse_args()
+
+
+def main():
+    """
+    Entry point for the SVM pipeline CLI.
+
+    Run the SVMPipeline using the selected mode.
+
+    Modes:
+        - train: Only train the model.
+        - score: Only evaluate triggers using a saved model.
+        - train_and_score: Train and immediately evaluate.
+    """
+    args = parse_args()
+    pipeline = SVMPipeline(args)
+
+    if args.mode == "train":
+        pipeline.train()
+    elif args.mode == "score":
+        pipeline.evaluate()
+    elif args.mode == "train_and_score":
+        pipeline.train()
+        pipeline.evaluate()
+        pipeline.save_scored_data()
+    else:
+        raise ValueError(f"Unsupported mode: {args.mode}")
+
+
+if __name__ == '__main__':
+    main()
