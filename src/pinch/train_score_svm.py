@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# This is probably deprecated
 
 import argparse
-from pinch.models.svm_pipeline import SVMPipeline
+from pinch.pipelines.svm_pipeline import SVMPipeline
+from pinch.utils.trigger_io import TIO
 
 
 def parse_args():
@@ -50,18 +50,29 @@ def main():
         - train_and_score: Train and immediately evaluate.
     """
     args = parse_args()
-    pipeline = SVMPipeline(args)
 
-    if args.mode == "train":
-        pipeline.train()
-    elif args.mode == "score":
-        pipeline.evaluate()
-    elif args.mode == "train_and_score":
-        pipeline.train()
-        pipeline.evaluate()
-        pipeline.save_scored_data()
-    else:
-        raise ValueError(f"Unsupported mode: {args.mode}")
+    clean_trigger_dict = TIO.read(args.clean_triggers)
+    dirty_trigger_dict = TIO.read(args.dirty_triggers)
+
+    assert set(clean_trigger_dict.keys()) == set(dirty_trigger_dict.keys()), "Mismatch in IFO keys"
+
+    for ifo in clean_trigger_dict.keys():
+        pipeline = SVMPipeline(
+                clean_df=clean_trigger_dict[ifo],
+                dirty_df=dirty_trigger_dict[ifo],
+                output_path=args.output_path,
+            )
+
+        if args.mode == "train":
+            pipeline.train()
+        elif args.mode == "score":
+            pipeline.evaluate()
+        elif args.mode == "train_and_score":
+            pipeline.train()
+            pipeline.evaluate()
+            pipeline.save_scored_data()
+        else:
+            raise ValueError(f"Unsupported mode: {args.mode}")
 
 
 if __name__ == '__main__':
