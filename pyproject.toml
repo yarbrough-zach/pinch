@@ -14,6 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-find_dirty_triggers = "pinch.find_dirty_triggers:main"
-train_and_score_dirty_triggers = "pinch.train_score_svm:main"
+overlap_and_score = "pinch.overlap_and_svm:main"
+#find_dirty_triggers = "pinch.find_dirty_triggers:main"
+#train_and_score_dirty_triggers = "pinch.train_score_svm:main"
 #gspy_query = "pinch.utils.gspy_handler:main"
