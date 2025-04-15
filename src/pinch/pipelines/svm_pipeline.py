@@ -17,34 +17,27 @@ class SVMPipeline:
         - "train_and_score": Train a model and immediately apply it.
 
     Attributes:
-        args (Namespace): Parsed command-line arguments.
         trainer (SVMClassifier or None): The trained SVM model.
         clean_df (pd.DataFrame or None): Clean glitch triggers for training.
         dirty_df (pd.DataFrame or None): Dirty glitch triggers for scoring.
         scored_df (pd.DataFrame or None): Scored triggers after evaluation.
-
-    Methods:
-        load_clean_triggers(): Load clean data from file or directory.
-        load_dirty_triggers(): Load dirty data from file or directory.
-        train(): Train the SVM model and optionally save it.
-        evaluate(): Apply the trained model to dirty triggers.
-        save_scored_data(): Write scored triggers to disk.
     """
     def __init__(
             self,
-            args,
-            trainer=None,
             clean_df=None,
             dirty_df=None,
-    ):
+            trainer=None,
+            model_path=None,
+            output_path=None,
+        ):
+            self.clean_df = clean_df
+            self.dirty_df = dirty_df
+            self.trainer = trainer
+            self.model_path = model_path
+            self.output_path = output_path
+            self.scored_df = None
 
-        self.args = args
-        self.trainer = trainer
-        self.clean_df = clean_df
-        self.dirty_df = dirty_df
-        self.scored_df = None
-
-    def train(self):
+    def train(self, save_model=False):
         """
         Train a one-class SVM model on clean data.
 
@@ -55,9 +48,11 @@ class SVMPipeline:
 
         self.trainer = SVMClassifier.train_from_data(self.clean_df)
 
-        if self.args.save_model:
-            os.makedirs(os.path.dirname(self.args.model_path), exist_ok=True)
-            self.trainer.save_model(self.args.model_path)
+        if save_model:
+            if not self.model_path:
+                raise ValueError("No model_path specified to save the model")
+            os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
+            self.trainer.save_model(self.model_path)
 
     def evaluate(self):
         """
@@ -70,9 +65,9 @@ class SVMPipeline:
             raise ValueError("No dirty dataframe provided for evaluation")
 
         if self.trainer is None:
-            if not self.args.model_path:
+            if not self.model_path:
                 raise ValueError("No model speficied for evaluation")
-            self.trainer = SVMClassifier.load_model(self.args.model_path)
+            self.trainer = SVMClassifier.load_model(self.model_path)
 
         scored_df = self.trainer.evaluate(self.dirty_df)
 
@@ -87,12 +82,15 @@ class SVMPipeline:
         Raises:
             ValueError: If no scored data is available.
         """
-        if not hasattr(self, 'scored_df') or self.scored_df is None:
+        if self.scored_df is None:
             raise ValueError("No scored data available, did you forget to call evaluate()?")
 
-        output_path = self.args.output_path
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        self._write_scored_df(self.scored_df, output_path)
+        if not self.output_path:
+            raise ValueError("No output_path specified to save scored data")
+
+        os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
+        # FIXME probably shouldn't just be attrs, should be args
+        self._write_scored_df(self.scored_df, self.output_path)
 
     @staticmethod
     def _load_trigger_file(path):
