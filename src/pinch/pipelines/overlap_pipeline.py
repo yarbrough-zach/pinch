@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
 
 from pinch.handlers.gspy_handler import GravitySpyHandler
@@ -32,25 +31,26 @@ class OverlapPipeline:
         run(): Perform full overlap analysis.
         write_output(separated_triggers=None): Write categorized triggers to disk.
     """
-    def __init__(self,
+    def __init__(
+            self,
             ifo,
             pipeline_trigger_path,
             output_dir,
             gspy_enabled=False,
             omicron_enabled=False,
             omicron_path=None,
-        ):
-            self.ifo = ifo
-            self.pipeline_trigger_path = pipeline_trigger_path
-            self.output_dir = output_dir
-            self.gspy_enabled = gspy_enabled
-            self.omicron_enabled = omicron_enabled
-            self.omicron_path = omicron_path
+    ):
+        self.ifo = ifo
+        self.pipeline_trigger_path = pipeline_trigger_path
+        self.output_dir = output_dir
+        self.gspy_enabled = gspy_enabled
+        self.omicron_enabled = omicron_enabled
+        self.omicron_path = omicron_path
 
-            self.pipeline_df = None
-            self.gspy_df = None
-            self.omic_df = None
-            self.separated_triggers = {}
+        self.pipeline_df = None
+        self.gspy_df = None
+        self.omic_df = None
+        self.separated_triggers = {}
 
     def load_pipeline_triggers(self):
         """
