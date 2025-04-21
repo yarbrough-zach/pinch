@@ -52,13 +52,19 @@ class OmicronHandler:
         `tstart` is calculated from `start_time` and `start_time_ns`.
         `tend` is computed as `tstart + duration`.
         """
-        self.omics.loc[:, 'tstart'] = (
-                self.omics['start_time'] + 1e-9 * self.omics['start_time_ns']
-            )
 
-        self.omics.loc[:, 'tend'] = (
-                self.omics['tstart'] + self.omics['duration']
-            )
+        if 'tstart' in self.omics.columns:
+            print('tstart and tend already present...')
+
+        else:
+
+            self.omics.loc[:, 'tstart'] = (
+                    self.omics['start_time'] + 1e-9 * self.omics['start_time_ns']
+                )
+
+            self.omics.loc[:, 'tend'] = (
+                    self.omics['tstart'] + self.omics['duration']
+                )
 
     def condition_omicron(self):
         """
