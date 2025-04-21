@@ -2,7 +2,6 @@
 
 import os
 import argparse
-import pandas as pd
 
 from gwpy.table import GravitySpyTable
 
@@ -41,6 +40,7 @@ class GravitySpyHandler:
     def __init__(
         self,
         ifo,
+        omicron_df=None,
         t_start=None,
         t_end=None,
         ml_label=None,
@@ -48,6 +48,7 @@ class GravitySpyHandler:
     ):
 
         self.ifo = ifo
+        self.omicron_df = omicron_df
         self.start = t_start
         self.end = t_end
         self.ml_label = ml_label
@@ -103,14 +104,38 @@ class GravitySpyHandler:
 
         `tstart` is computed from `start_time` and `start_time_ns`.
         `tend` is `tstart + duration`.
-        """
-        self.glitches.loc[:, 'tstart'] = (
-                self.glitches['start_time'] + 1e-9 * self.glitches['start_time_ns']
-            )
 
-        self.glitches.loc[:, 'tend'] = (
-                self.glitches['tstart'] + self.glitches['duration']
-            )
+        If start_time and start_time_ns are not present, a corresponding
+        Omicron df is necessary.
+        """
+
+        try:
+            self.glitches.loc[:, 'tstart'] = (
+                    self.glitches['start_time'] + 1e-9 * self.glitches['start_time_ns']
+                )
+
+            self.glitches.loc[:, 'tend'] = (
+                    self.glitches['tstart'] + self.glitches['duration']
+                )
+
+        except TypeError as e:
+            print('start_time not included, searching for data in omicron...')
+            print(e)
+
+            if not self.omicron_df:
+                raise AttributeError("No omicron df attr provided while attempting to cross reference gravity spy triggers with omicron df")
+
+            # merge gspy and omicron dfs on time to find the tstart and tend of gspy glitch
+            merged_df = self.glitches.merge(
+                    self.omicron_df,
+                    left_on="event_time",
+                    right_on="time",
+                    how="inner"
+                )
+
+            self.glitches = merged_df
+
+        assert 'tstart' in self.glitches.columns
 
     def query_and_condition_gspy(self):
         """
