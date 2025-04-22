@@ -2,6 +2,9 @@
 
 # given pipeline triggers and some glitch triggers
 # find overlaps, assign values
+from intervaltree import IntervalTree
+from collections import defaultdict
+
 
 class OverlapEngine:
     """
@@ -35,7 +38,7 @@ class OverlapEngine:
             if col not in self.pipeline_triggers.columns:
                 self.pipeline_triggers[col] = None
 
-    def find_gspy_overlaps(self):
+    def find_gspy_overlaps_old(self):
         """
         Annotate pipeline triggers that overlap with Gravity Spy glitches.
 
@@ -70,7 +73,43 @@ class OverlapEngine:
 
             self.pipeline_triggers.loc[affected_indicies, 'glitch_id'] = glitch_id
 
+    def find_gspy_overlaps(self):
+        self.tree = IntervalTree()
+
+        for idx, row in self.gspy_triggers.iterrows():
+            self.tree[row['tstart']:row['tend']] = row['gravityspy_id']
+
+        trigger_glitch_map = defaultdict(list)
+
+        for idx, row in self.pipeline_triggers.iterrows():
+            overlaps = self.tree.overlap(row['tstart'], row['tend'])
+
+            if overlaps:
+                trigger_glitch_map[idx] = [iv.data for iv in overlaps]
+
+        self.pipeline_triggers['glitch_id'] = self.pipeline_triggers.index.map(lambda i: trigger_glitch_map.get(i, []))
+
     def find_omicron_overlaps(self):
+        self.omicron_tree = IntervalTree()
+
+        for idx, row in self.omicron_triggers.iterrows():
+            self.omicron_tree[row['tstart']:row['tend']] = idx
+
+            if idx % 1000 == 0:
+                print(idx, '/', len(self.omicron_triggers))
+
+        trigger_glitch_map = defaultdict(list)
+
+        for idx, row in self.pipeline_triggers.iterrows():
+
+            overlaps = self.omicron_tree.overlap(row['tstart'], row['tend'])
+
+            if overlaps:
+                trigger_glitch_map[idx] = [iv.data for iv in overlaps]
+
+        self.pipeline_triggers['omic_id'] = self.pipeline_triggers.index.map(lambda i: trigger_glitch_map.get(i, []))
+
+    def find_omicron_overlaps_old(self):
         """
         Annotate pipeline triggers that overlap with Omicron glitches.
 
@@ -121,9 +160,12 @@ class OverlapEngine:
         - Clean: no overlaps at all
         - Other: only overlaps with Omicron (no Gravity Spy)
         """
-        mask_dirty = (self.pipeline_triggers['glitch_id'].notna()) | (self.pipeline_triggers['omic_id'].notna())
-        mask_clean = (self.pipeline_triggers['glitch_id'].isna()) & (self.pipeline_triggers['omic_id'].isna())
-        mask_other = (self.pipeline_triggers['glitch_id'].isna()) & (self.pipeline_triggers['omic_id'].notna())
+        self.pipeline_triggers.loc[:, 'num_glitch_overlaps'] = self.pipeline_triggers['glitch_id'].apply(len)
+        self.pipeline_triggers.loc[:, 'num_omic_overlaps'] = self.pipeline_triggers['omic_id'].apply(len)
+
+        mask_dirty = (self.pipeline_triggers['num_glitch_overlaps'] > 0) | (self.pipeline_triggers['num_omic_overlaps'] > 0)
+        mask_clean = (self.pipeline_triggers['num_glitch_overlaps'] == 0) & (self.pipeline_triggers['num_omic_overlaps'] == 0)
+        mask_other = (self.pipeline_triggers['num_glitch_overlaps'] == 0) & (self.pipeline_triggers['num_omic_overlaps'] > 0)
 
         self.dirty_pipeline_triggers = self.pipeline_triggers[mask_dirty].copy()
         self.clean_pipeline_triggers = self.pipeline_triggers[mask_clean].copy()
@@ -132,6 +174,10 @@ class OverlapEngine:
         # duplicate gravityspy id as glitch id for merging
         # FIXME gross
         # self.gspy_triggers.loc[:, 'glitch_id'] = self.gspy_triggers['gravityspy_id']
+
+        self.dirty_pipeline_triggers.loc[:, 'trigger_group_id'] = self.dirty_pipeline_triggers.index
+
+        self.dirty_pipeline_triggers = self.dirty_pipeline_triggers.explode('glitch_id')
 
         # merge on glitch_id
         self.dirty_pipeline_triggers = self.dirty_pipeline_triggers.merge(
