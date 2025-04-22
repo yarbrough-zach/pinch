@@ -38,8 +38,10 @@ def main():
     omicron_path_dict = {}
 
     if args.omicron and args.omicron_paths:
+        print('omicron paths', args.omicron_paths)
         try:
             for pair in args.omicron_paths.split(','):
+                print(pair)
                 ifo, path = pair.split(':')
                 omicron_path_dict[ifo] = path
         except ValueError:
@@ -74,9 +76,9 @@ def main():
         print('len clean df:', len(clean_df))
 
         svm = SVMPipeline(
-                args=args,
-                clean_df=clean_df if not args.score_only else None,
-                dirty_df=dirty_df
+                clean_df=clean_df,
+                dirty_df=dirty_df,
+                output_path=args.scored_output_path
             )
 
         if not args.score_only:
