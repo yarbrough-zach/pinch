@@ -84,7 +84,13 @@ class SVMClassifier:
             n_samples (int): Number of samples to randomly select for training.
         """
         training_df = self.apply_feature_engineering(training_df)
-        sampled = training_df[self.cutoff_params].sample(n=n_samples)
+
+        if n_samples < len(training_df):
+            sampled = training_df[self.cutoff_params].sample(n=n_samples)
+
+        else:
+            sampled = training_df[self.cutoff_params].sample(n=n_samples, replace=True)
+
         scaled_clean = self.scaler.fit_transform(sampled)
         self.model = OneClassSVM(kernel="rbf", nu=0.1).fit(scaled_clean)
 
