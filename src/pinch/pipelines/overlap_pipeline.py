@@ -74,7 +74,11 @@ class OverlapPipeline:
         """
         Load and condition Omicron triggers from the CSV path using OmicronHandler.
         """
-        omic_handler = OmicronHandler(self.omicron_path)
+        start = min(self.pipeline_df['tstart']) - 10
+        end = max(self.pipeline_df['tstart']) + 10
+
+        omic_handler = OmicronHandler(self.omicron_path, start=start, end=end)
+
         self.omic_df = omic_handler.condition_omicron()
 
     def run(self):
