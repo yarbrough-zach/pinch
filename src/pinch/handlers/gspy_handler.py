@@ -120,12 +120,12 @@ class GravitySpyHandler:
 
         except TypeError as e:
             print('start_time not included, searching for data in omicron...')
-            print(e)
 
-            if not self.omicron_df:
+            if not len(self.omicron_df):
                 raise AttributeError("No omicron df attr provided while attempting to cross reference gravity spy triggers with omicron df")
 
             # merge gspy and omicron dfs on time to find the tstart and tend of gspy glitch
+            print('Attempting to merge gspy and omicron...')
             merged_df = self.glitches.merge(
                     self.omicron_df,
                     left_on="event_time",
@@ -136,6 +136,7 @@ class GravitySpyHandler:
             self.glitches = merged_df
 
         assert 'tstart' in self.glitches.columns
+        print('success!')
 
     def query_and_condition_gspy(self):
         """
