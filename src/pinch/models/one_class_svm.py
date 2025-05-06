@@ -92,7 +92,9 @@ class SVMClassifier:
             sampled = training_df[self.cutoff_params].sample(n=n_samples, replace=True)
 
         scaled_clean = self.scaler.fit_transform(sampled)
-        self.model = OneClassSVM(kernel="rbf", nu=0.1).fit(scaled_clean)
+
+        #FIXME make nu an argument
+        self.model = OneClassSVM(kernel="rbf", nu=0.01).fit(scaled_clean)
 
     def evaluate(self, df):
         """
