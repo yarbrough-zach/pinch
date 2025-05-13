@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# given pipeline triggers and some glitch triggers
-# find overlaps, assign values
+import pandas as pd
+
 from intervaltree import IntervalTree
 from collections import defaultdict
 
