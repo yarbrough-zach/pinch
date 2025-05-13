@@ -176,6 +176,20 @@ class OverlapEngine:
 
             self.pipeline_triggers.loc[affected_indicies, 'omic_id'] = glitch_id
 
+    @staticmethod
+    def ensure_list(x):
+
+        if isinstance(x, list):
+            return x
+
+        if isinstance(x, np.ndarray):
+            return list(x)
+
+        if x is None or (isinstance(x, float) and pd.isna(x)):
+            return []
+
+        return [x]
+
     def separate_triggers(self):
         """
         Split pipeline triggers into clean, dirty, and other categories.
@@ -186,13 +200,8 @@ class OverlapEngine:
         """
 
         # make sure glitch_id and omic_id are lists for backwards compatibility
-        self.pipeline_triggers['glitch_id'] = self.pipeline_triggers['glitch_id'].apply(
-                lambda x: [x] if pd.notnull(x) and not isinstance(x, list) else ([] if pd.isnull(x) else x)
-            )
-
-        self.pipeline_triggers['omic_id'] = self.pipeline_triggers['omic_id'].apply(
-                lambda x: [x] if pd.notnull(x) and not isinstance(x, list) else ([] if pd.isnull(x) else x)
-            )
+        self.pipeline_triggers['glitch_id'] = self.pipeline_triggers['glitch_id'].apply(self.ensure_list)
+        self.pipeline_triggers['omic_id'] = self.pipeline_triggers['omic_id'].apply(self.ensure_list)
 
         self.pipeline_triggers.loc[:, 'num_glitch_overlaps'] = self.pipeline_triggers['glitch_id'].apply(len)
         self.pipeline_triggers.loc[:, 'num_omic_overlaps'] = self.pipeline_triggers['omic_id'].apply(len)
