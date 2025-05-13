@@ -63,7 +63,7 @@ class OverlapPipeline:
         """
         Query and condition Gravity Spy triggers using the time bounds of pipeline triggers.
         """
-        gspy_handler = GravitySpyHandler(self.ifo)
+        gspy_handler = GravitySpyHandler(self.ifo, omicron_df=self.omic_df)
 
         gspy_handler.start = min(self.pipeline_df['tstart']) - 10
         gspy_handler.end = max(self.pipeline_df['tstart']) + 10
@@ -74,7 +74,11 @@ class OverlapPipeline:
         """
         Load and condition Omicron triggers from the CSV path using OmicronHandler.
         """
-        omic_handler = OmicronHandler(self.omicron_path)
+        start = min(self.pipeline_df['tstart']) - 10
+        end = max(self.pipeline_df['tstart']) + 10
+
+        omic_handler = OmicronHandler(self.omicron_path, start=start, end=end)
+
         self.omic_df = omic_handler.condition_omicron()
 
     def run(self):
@@ -83,11 +87,11 @@ class OverlapPipeline:
         """
         self.load_pipeline_triggers()
 
-        if self.gspy_enabled:
-            self.load_gspy_triggers()
-
         if self.omicron_enabled:
             self.load_omicron_triggers()
+
+        if self.gspy_enabled:
+            self.load_gspy_triggers()
 
         engine = OverlapEngine(
                 self.pipeline_df,
@@ -96,10 +100,10 @@ class OverlapPipeline:
             )
 
         if self.gspy_df is not None:
-            engine.find_gspy_overlaps()
+            engine.find_gspy_overlaps_tree()
 
         if self.omic_df is not None:
-            engine.find_omicron_overlaps()
+            engine.find_omicron_overlaps_tree()
 
         engine.separate_triggers()
 

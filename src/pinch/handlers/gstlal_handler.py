@@ -40,7 +40,7 @@ class GstlalHandler:
         """
         return [
             os.path.join(self.trigger_path, f)
-            for f in os.listdir(self.trigger_path)
+            for f in os.listdir(self.trigger_path) if f.endswith('.csv')
         ]
 
     def read_gstlal_csv(self, csv_path):

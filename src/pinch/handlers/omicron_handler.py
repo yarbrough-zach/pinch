@@ -2,6 +2,7 @@
 
 import argparse
 import pandas as pd
+import duckdb
 
 
 class OmicronHandler:
@@ -20,8 +21,19 @@ class OmicronHandler:
         construct_omicron_start_end(): Add `tstart` and `tend` columns.
         condition_omicron(): Apply all processing steps and return the result.
     """
-    def __init__(self, csv_path):
-        self.omics = self.read_omicron_csv(csv_path)
+    def __init__(self, path, start=None, end=None):
+        self.path = path
+        self.start = start
+        self.end = end
+
+        if self.path.endswith('.csv'):
+            self.omics = self.read_omicron_csv(self.path)
+
+        elif self.path.endswith('.duckdb'):
+            if (not self.start) or (not self.end):
+                raise AttributeError("duckdb supplied without start and end times")
+
+            self.omics = self.query_duckdb()
 
     def read_omicron_csv(self, csv_path):
         """
@@ -34,6 +46,30 @@ class OmicronHandler:
             pd.DataFrame: DataFrame containing raw Omicron triggers.
         """
         return pd.read_csv(csv_path)
+
+    def query_duckdb(self):
+
+        con = duckdb.connect(self.path)
+
+        table_names = con.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'main'
+        """).fetchall()
+
+        # flatten the list of tuples
+        table_names = [name[0] for name in table_names]
+
+        query = f"""
+            SELECT *
+            FROM {table_names[0]}
+            WHERE tstart > {self.start} AND tend < {self.end}
+            """
+
+        results_df = con.execute(query).fetchdf()
+        con.close()
+
+        return results_df
 
     def apply_omicron_snr_cut(self, omicron_snr_cut=5.5):
         """
@@ -52,13 +88,19 @@ class OmicronHandler:
         `tstart` is calculated from `start_time` and `start_time_ns`.
         `tend` is computed as `tstart + duration`.
         """
-        self.omics.loc[:, 'tstart'] = (
-                self.omics['start_time'] + 1e-9 * self.omics['start_time_ns']
-            )
 
-        self.omics.loc[:, 'tend'] = (
-                self.omics['tstart'] + self.omics['duration']
-            )
+        if 'tstart' in self.omics.columns:
+            print('tstart and tend already present...')
+
+        else:
+
+            self.omics.loc[:, 'tstart'] = (
+                    self.omics['start_time'] + 1e-9 * self.omics['start_time_ns']
+                )
+
+            self.omics.loc[:, 'tend'] = (
+                    self.omics['tstart'] + self.omics['duration']
+                )
 
     def condition_omicron(self):
         """
