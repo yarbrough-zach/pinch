@@ -100,10 +100,10 @@ class OverlapPipeline:
             )
 
         if self.gspy_df is not None:
-            engine.find_gspy_overlaps()
+            engine.find_gspy_overlaps_tree()
 
         if self.omic_df is not None:
-            engine.find_omicron_overlaps()
+            engine.find_omicron_overlaps_tree()
 
         engine.separate_triggers()
 
