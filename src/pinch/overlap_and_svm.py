@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import pandas as pd
 
 from pinch.pipelines.overlap_pipeline import OverlapPipeline
 from pinch.pipelines.svm_pipeline import SVMPipeline
@@ -86,9 +87,38 @@ def main():
 
         scored_df = svm.evaluate()
 
+        # FIXME this is hack-y
+        # figure out why non-numeric values being added to svm_score
+        # and why there are unnamed columns
+        # and maybe refactor trigger_group_id and omic_id
+
+        # drop columns problematic for duckdb
+        for column in ['trigger_group_id', 'omic_id']:
+            if column in scored_df.columns:
+                scored_df = scored_df.drop(columns=[column])
+
+        # check for weird svm scores that had non numeric characters
+        if 'svm_score' in scored_df.columns:
+            svm_numeric = pd.to_numeric(scored_df['svm_score'], errors='coerce')
+            non_numeric_mask = svm_numeric.isna() & scored_df['svm_score'].notna()
+            num_non_numeric = non_numeric_mask.sum()
+
+            if num_non_numeric > 0:
+                print(f"Found {num_non_numeric} non-numeric svm_score entries.")
+
+                if num_non_numeric < 10:
+                    scored_df = scored_df[~non_numeric_mask]
+                    print(f"Dropped {num_non_numeric} rows with non-numeric svm_score.")
+                else:
+                    print("Too many non-numeric svm_score entries (>10); file left unchanged.")
+                    continue  # Skip overwriting this file
+
+        # drop unnamed columns
+        scored_df = scored_df.loc[:, ~scored_df.columns.str.startswith("Unnamed")]
+
         output_path = f"{args.scored_output_path}/{ifo}_scored_output.csv"
         print(output_path)
-        scored_df.to_csv(f"{output_path}")
+        scored_df.to_csv(f"{output_path}", index=False)
 
 
 if __name__ == '__main__':
