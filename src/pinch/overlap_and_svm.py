@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
+
 import pandas as pd
 
 from pinch.pipelines.overlap_pipeline import OverlapPipeline
 from pinch.pipelines.svm_pipeline import SVMPipeline
 
+logger = logging.getLogger(__name__)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run glitch overlap pipeline and then train/score an SVM on the results")
@@ -26,7 +29,15 @@ def parse_args():
     parser.add_argument('--score-only', action='store_true', help='Skip training and only score dirty tiggers')
     parser.add_argument('--scored-output-path', required=True, help='Base path to write SVM-scored CSVs')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # argument cross-checks
+    if args.omicron and not args.omicron_paths:
+        parser.error("--omicron specified but no --omicron-paths provided")
+    if args.omicron_paths and not args.omicron:
+        parser.error("--omicron-paths provided without --omicron")
+
+    return args
 
 
 def main():
@@ -39,23 +50,30 @@ def main():
     omicron_path_dict = {}
 
     if args.omicron and args.omicron_paths:
-        print('omicron paths', args.omicron_paths)
+        logger.info(f"omicron paths: {args.omicron_paths}")
+ 
         try:
             for pair in args.omicron_paths.split(','):
-                print(pair)
+ 
                 ifo, path = pair.split(':')
                 omicron_path_dict[ifo] = path
         except ValueError:
-            raise ValueError('--omicron-paths entry must be in IFO:path format')
+            msg = '--omicron-paths entry must be in IFO:path format'
+            logger.exception(msg)
+            raise ValueError(msg)
 
     elif args.omicron and not args.omicron_paths:
-        raise ValueError('--omicron specified but no omicron paths provided')
+        msg = '--omicron specified but no omicron paths provided'
+        logger.error(msg)
+        raise ValueError(msg)
 
     elif args.omicron_paths and not args.omicron:
-        raise ValueError('omicron paths provided without specifying --omicron')
+        msg = 'omicron paths provided without specifying --omicron'
+        logger.error(msg)
+        raise ValueError(msg)
 
     for ifo in args.ifos:
-        print(ifo)
+        logger.info(f"Processing {ifo}...")
 
         omicron_path = omicron_path_dict.get(ifo) if args.omicron else None
 
@@ -74,7 +92,7 @@ def main():
         clean_df = overlap.separated_triggers.get("clean")
         dirty_df = overlap.separated_triggers.get("dirty")
 
-        print('len clean df:', len(clean_df))
+        logger.info(f"len clean df: {len(clean_df)}")
 
         svm = SVMPipeline(
                 clean_df=clean_df,
@@ -104,22 +122,28 @@ def main():
             num_non_numeric = non_numeric_mask.sum()
 
             if num_non_numeric > 0:
-                print(f"Found {num_non_numeric} non-numeric svm_score entries.")
+                logger.debug(f"Found {num_non_numeric} non-numeric svm_score entries.")
 
                 if num_non_numeric < 10:
                     scored_df = scored_df[~non_numeric_mask]
-                    print(f"Dropped {num_non_numeric} rows with non-numeric svm_score.")
+                    logger.debug(f"Dropped {num_non_numeric} rows with non-numeric svm_score.")
                 else:
-                    print("Too many non-numeric svm_score entries (>10); file left unchanged.")
+                    logger.debug("Too many non-numeric svm_score entries (>10); file left unchanged.")
                     continue  # Skip overwriting this file
 
         # drop unnamed columns
         scored_df = scored_df.loc[:, ~scored_df.columns.str.startswith("Unnamed")]
 
         output_path = f"{args.scored_output_path}/{ifo}_scored_output.csv"
-        print(output_path)
+        logger.info(f"Saving output to {output_path}")
         scored_df.to_csv(f"{output_path}", index=False)
 
 
 if __name__ == '__main__':
+
+    logging.basicConfig(
+        level=logging.INFO,  # or use: level=getattr(logging, os.getenv("LOGLEVEL", "INFO").upper(), logging.INFO)
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
     main()
