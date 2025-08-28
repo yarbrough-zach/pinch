@@ -39,7 +39,7 @@ Gravitational-wave detectors are plagued by short-duration, non-astrophysical no
 
 ### Results
 
-#The PINCH method shows that some glitch classes consistently populate narrow regions of search parameter space, while others are more diffuse. Example figures from the paper:
+The PINCH method shows that some glitch classes consistently populate narrow regions of search parameter space, while others are more diffuse.
 #Evolution of glitch impacts over time
 #Parameter-space clustering for specific glitch types
 #Performance of the SVM classifier on O3 data
