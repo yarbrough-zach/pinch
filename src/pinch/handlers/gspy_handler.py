@@ -16,8 +16,6 @@ from pinch.utils.chunk_parse import ChunkParse
 logger = logging.getLoger(__name__)
 
 # authentication for gspy database
-# must be in env variables before running
-
 def _as_time_range_from_df(
         df: pd.DataFrame,
         col: str,
