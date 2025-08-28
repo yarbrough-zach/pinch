@@ -63,10 +63,14 @@ class OverlapPipeline:
         """
         Query and condition Gravity Spy triggers using the time bounds of pipeline triggers.
         """
-        gspy_handler = GravitySpyHandler(self.ifo, omicron_df=self.omic_df)
+        gspy_handler = GravitySpyHandler.from_omicron_df(
+                self.ifo,
+                omicron_df=self.omic_df,
+                margin=10.0,
+            )
 
-        gspy_handler.start = min(self.pipeline_df['tstart']) - 10
-        gspy_handler.end = max(self.pipeline_df['tstart']) + 10
+        #gspy_handler.start = min(self.pipeline_df['tstart']) - 10
+        #gspy_handler.end = max(self.pipeline_df['tstart']) + 10
 
         self.gspy_df = gspy_handler.return_gspy_events()
 
