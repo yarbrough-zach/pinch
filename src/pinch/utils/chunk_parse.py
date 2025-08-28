@@ -3,6 +3,8 @@
 import argparse
 import pandas as pd
 
+from typing import Tuple
+from pathlib import Path
 
 class ChunkParse:
     """
@@ -16,7 +18,12 @@ class ChunkParse:
             Parses the given chunk from the definition file and returns its start and end times.
     """
 
-    def parse_chunk_file(self, chunk, chunk_definition_file):
+    def parse_chunk_file(
+            self,
+            chunk: str | int,
+            chunk_definition_file: str | Path
+        ) -> Tuple[str, str]:
+
         """
         Parse the start and end time for a specified chunk from a definition file.
 
@@ -60,8 +67,7 @@ class ChunkParse:
         return start, end
 
 
-if __name__ == '__main__':
-
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--chunk-definition-file', type=str)
     parser.add_argument('--chunk', type=str)
@@ -74,3 +80,6 @@ if __name__ == '__main__':
         )
 
     print(start, end)
+
+if __name__ == '__main__':
+    main()
