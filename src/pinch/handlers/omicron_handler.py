@@ -41,7 +41,9 @@ class OmicronHandler:
 
         elif self.path.endswith('.duckdb'):
             if (not self.start) or (not self.end):
-                raise AttributeError("duckdb supplied without start and end times")
+                msg = "duckdb supplied without start and end times"
+                logger.error(msg)
+                raise AttributeError(msg)
 
             self.omics = self.query_duckdb()
 

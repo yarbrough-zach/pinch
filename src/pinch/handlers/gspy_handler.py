@@ -7,10 +7,13 @@ import argparse
 from dataclasses import dataclass
 from typing import Optional, Iterable, Tuple
 import pandas as pd
+import logging
 
 from gwpy.table import GravitySpyTable
 
 from pinch.utils.chunk_parse import ChunkParse
+
+logger = logging.getLoger(__name__)
 
 # export authentication for gspy database
 def _as_time_range_from_df(
@@ -18,13 +21,19 @@ def _as_time_range_from_df(
         col: str,
         margin: float = 10.0
     ) -> Tuple[float, float]:
+
         if col not in df.columns or df.empty:
-            raise ValueError(f"Expected non-empty DataFrame with column '{col}'.")
+            msg = f"Expected non-empty DataFrame with column '{col}'."
+            logger.error(msg)
+            raise ValueError(msg)
+
         t0 = float(df[col].min()) - margin
         t1 = float(df[col].max()) + margin
 
         if t0 >= t1:
-            raise ValueError(f"Bad time window: start {t0} >= end {t1}")
+            msg = f"Bad time window: start {t0} >= end {t1}"
+            logger.error(msg)
+            raise ValueError(msg)
 
         return t0, t1
 
@@ -68,9 +77,14 @@ class GravitySpyHandler:
    
     def __post_init__(self) -> None:
         if self.t_start >= self.t_end:
-            raise ValueError ("t_start must be < t_end")
+            msg = "t_start must be < t_end"
+            logger.error(msg)
+            raise ValueError(msg)
+
         if not (0.0 <= self.confidence <= 1):
-            raise ValueError("confidence must be between 0 and 1")
+            msg = "confidence must be between 0 and 1"
+            logger.error(msg)
+            raise ValueError(msg)
 
     @classmethod
     def from_time_range(
@@ -86,7 +100,9 @@ class GravitySpyHandler:
             t0 = float(t_start)
             t1 = float(t_end)
             if t0 >= t1:
-                raise ValueError(f"t_start must be < t_end")
+                msg = f"t_start must be < t_end"
+                logger.error(msg)
+                raise ValueError(msg)
 
             return cls(
                     ifo=ifo, t_start=t0, t_end=t1,
@@ -147,7 +163,9 @@ class GravitySpyHandler:
         glitches = glitches.to_pandas()
 
         if glitches.empty:
-            raise RuntimeError("No glitches retured for gspy query")
+            msg = "No glitches retured for gspy query"
+            logger.error(msg)
+            raise RuntimeError(msg)
         
         self.glitches = glitches
 
@@ -178,10 +196,9 @@ class GravitySpyHandler:
         
         # if we can't, fall back to omicron
         if self.omicron_df is None or self.omicron_df.empty:
-            raise ValueError(
-                "Gravity Spy rows lack start_time/start_time_ns/duration; "
-                "no non-empty omicron_df was provided to compute tstart/tend."
-            )
+            msg = "no gspy start time and duration, no omicron df provided to compute them"
+            logger.error(msg)
+            raise ValueError(msg)
 
         o = self.omicron_df.sort_values(by=self._omic_time_col())
         g = out.sort_values(by='event_time')
@@ -195,10 +212,10 @@ class GravitySpyHandler:
         return self.glitches
 
         if "tstart" not in merged.columns or "tend" not in merged.columns:
-            raise ValueError("Unable to produce 'tstart'/'tend' after omicron merge.")
+            msg = "Unable to produce 'tstart'/'tend' after omicron merge."
+            logger.error(msg)
+            raise ValueError(msg)
         
-        print('success!')
-
     def _omic_time_col(self) -> str:
         return "tstart" if self.omicron_df is not None and "tstart" in self.omicron_df.columns else "time"
 
@@ -209,8 +226,6 @@ class GravitySpyHandler:
         This combines fetching glitch data and computing additional timing fields.
         """
         df = self.fetch_gravity_spy_events()
-        if df.empty:
-            raise RuntimeError("gspy query returned empty df")
 
         df = self.construct_gspy_start_end(df)
         
@@ -249,7 +264,9 @@ def main():
         end = args.end
 
     else:
-        raise ValueError("Insufficient time arguments provided")
+        msg = "Insufficient time arguments provided"
+        logger.error(msg)
+        raise ValueError(msg)
 
     gspy_events = GravitySpyHandler(
             t_start=start,

@@ -6,6 +6,9 @@ import logging
 from typing import Tuple
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
+
 class ChunkParse:
     """
     A utility class for parsing chunk time intervals from a chunk definition file.

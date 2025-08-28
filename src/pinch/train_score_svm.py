@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
+
 from pinch.pipelines.svm_pipeline import SVMPipeline
 from pinch.utils.trigger_io import TIO
 
+logger = logging.getLogger(__name__)
 
 def parse_args():
     """
@@ -72,7 +75,9 @@ def main():
             pipeline.evaluate()
             pipeline.save_scored_data()
         else:
-            raise ValueError(f"Unsupported mode: {args.mode}")
+            msg = f"Unsupported mode: {args.mode}"
+            logger.error(msg)
+            raise ValueError(msg)
 
 
 if __name__ == '__main__':

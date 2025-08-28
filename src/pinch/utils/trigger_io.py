@@ -3,7 +3,7 @@
 import os
 import numpy as np
 import pandas as pd
-
+import logging
 from typing import Optional, Dict, List
 from collections import defaultdict
 from pathlib import Path
@@ -62,7 +62,9 @@ class TIO:
         elif path_type == 'file':
             data = cls._read_file(input_path)
         else:
-            raise ValueError('Input path is neither path nor file')
+            msg = 'Input path is neither path nor file'
+            logger.error(msg)
+            raise ValueError(msg)
 
         return data
 

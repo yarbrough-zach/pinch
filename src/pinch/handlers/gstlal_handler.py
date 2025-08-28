@@ -4,7 +4,9 @@ import os
 from typing import List, Tuple, Union
 from pathlib import Path
 import pandas as pd
+import logging
 
+logger = logging.getLogger(__name__)
 
 class GstlalHandler:
     """
@@ -110,7 +112,9 @@ class GstlalHandler:
             self.construct_gstlal_start_end()
 
         else:
-            raise RuntimeError("segment=True not supported yet")
+            msg = "segment=True not supported yet"
+            logger.error(msg)
+            raise RuntimeError(msg)
 
         return self.triggers
 

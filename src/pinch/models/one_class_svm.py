@@ -6,9 +6,12 @@ import pandas as pd
 
 from typing import Optional, List, Union
 from pathlib import Path
+import logging
 
 from sklearn.svm import OneClassSVM
 from sklearn.preprocessing import StandardScaler
+
+logger = logging.getLogger(__name__)
 
 
 class SVMClassifier:
@@ -59,7 +62,10 @@ class SVMClassifier:
         """
         if param == 'chisqBysnrsq':
             return df['chisq'] / df['snr']**2
-        raise ValueError(f"Unsupported param for training param: {param}")
+
+        msg = f"Unsupported param for training param: {param}"
+        logger.error(msg)
+        raise ValueError(msg)
 
     def apply_feature_engineering(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -114,7 +120,9 @@ class SVMClassifier:
             RuntimeError: If model or scaler is not initialized.
         """
         if self.model is None or self.scaler is None:
-            raise RuntimeError("Model and scaler must be set before evaluation")
+            msg = "Model and scaler must be set before evaluation"
+            logger.error(msg)
+            raise RuntimeError(msg)
 
         df = self.apply_feature_engineering(df)
         data = self.scaler.transform(

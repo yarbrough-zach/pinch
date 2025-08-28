@@ -5,8 +5,11 @@ import pandas as pd
 
 from typing import Optional, Union
 from pathlib import Path
+import logging
 
 from pinch.models.one_class_svm import SVMClassifier
+
+logger = logging.getLogger(__name__)
 
 
 class SVMPipeline:
@@ -46,13 +49,18 @@ class SVMPipeline:
         Optionally saves the trained model to a file.
         """
         if self.clean_df is None:
-            raise ValueError("No clean dataframe provided for training")
+            msg = "No clean dataframe provided for training"
+            logger.error(msg)
+            raise ValueError(msg)
 
         self.trainer = SVMClassifier.train_from_data(self.clean_df)
 
         if save_model:
             if not self.model_path:
-                raise ValueError("No model_path specified to save the model")
+                msg = "No model_path specified to save the model"
+                logger.error(msg)
+                raise ValueError(msg)
+
             os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
             self.trainer.save_model(self.model_path)
 
@@ -64,11 +72,16 @@ class SVMPipeline:
             ValueError: If no model is provided or trained.
         """
         if self.dirty_df is None:
-            raise ValueError("No dirty dataframe provided for evaluation")
+            msg = "No dirty dataframe provided for evaluation"
+            logger.error(msg)
+            raise ValueError(msg)
 
         if self.trainer is None:
             if not self.model_path:
-                raise ValueError("No model speficied for evaluation")
+                msg = "No model speficied for evaluation"
+                logger.error(msg)
+                raise ValueError(msg)
+
             self.trainer = SVMClassifier.load_model(self.model_path)
 
         scored_df = self.trainer.evaluate(self.dirty_df)
@@ -85,13 +98,16 @@ class SVMPipeline:
             ValueError: If no scored data is available.
         """
         if self.scored_df is None:
-            raise ValueError("No scored data available, did you forget to call evaluate()?")
+            msg = "No scored data available, did you forget to call evaluate()?"
+            logger.error(msg)
+            raise ValueError(msg)
 
         if not self.output_path:
-            raise ValueError("No output_path specified to save scored data")
+            msg = "No output_path specified to save scored data"
+            logger.error(msg)
+            raise ValueError(msg)
 
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
-        # FIXME probably shouldn't just be attrs, should be args
         self._write_scored_df(self.scored_df, self.output_path)
 
     @staticmethod
