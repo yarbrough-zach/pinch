@@ -3,6 +3,9 @@
 import os
 import pandas as pd
 
+from typing import Optional, Union
+from pathlib import Path
+
 from pinch.models.one_class_svm import SVMClassifier
 
 
@@ -23,12 +26,12 @@ class SVMPipeline:
     """
     def __init__(
             self,
-            clean_df=None,
-            dirty_df=None,
-            trainer=None,
-            model_path=None,
-            output_path=None,
-    ):
+            clean_df: Optional[pd.DataFrame] = None,
+            dirty_df: Optional[pd.DataFrame] = None,
+            trainer: Optional[SVMClassifier] = None,
+            model_path: Optional[str | Path] = None,
+            output_path: Optional[str | Path] = None,
+    ) -> None:
         self.clean_df = clean_df
         self.dirty_df = dirty_df
         self.trainer = trainer
@@ -36,7 +39,7 @@ class SVMPipeline:
         self.output_path = output_path
         self.scored_df = None
 
-    def train(self, save_model=False):
+    def train(self, save_model: bool = False) -> None:
         """
         Train a one-class SVM model on clean data.
 
@@ -53,7 +56,7 @@ class SVMPipeline:
             os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
             self.trainer.save_model(self.model_path)
 
-    def evaluate(self):
+    def evaluate(self) -> pd.DataFrame:
         """
         Score dirty triggers using the trained SVM model.
 
@@ -74,7 +77,7 @@ class SVMPipeline:
 
         return self.scored_df
 
-    def save_scored_data(self):
+    def save_scored_data(self) -> None:
         """
         Save scored dirty triggers to the specified output path.
 
@@ -92,9 +95,9 @@ class SVMPipeline:
         self._write_scored_df(self.scored_df, self.output_path)
 
     @staticmethod
-    def _load_trigger_file(path):
+    def _load_trigger_file(path: str | Path) -> None:
         return pd.read_csv(path)
 
     @staticmethod
-    def _write_scored_df(df, path):
+    def _write_scored_df(df, path: str | Path) -> None:
         df.to_csv(f"{path}/scored_df.csv", index=False)
