@@ -1,5 +1,8 @@
 #! /usr/bin/env python3
 
+from typing import Optional, Union
+from pathlib import Path
+
 import argparse
 import pandas as pd
 import duckdb
@@ -21,10 +24,15 @@ class OmicronHandler:
         construct_omicron_start_end(): Add `tstart` and `tend` columns.
         condition_omicron(): Apply all processing steps and return the result.
     """
-    def __init__(self, path, start=None, end=None):
-        self.path = path
-        self.start = start
-        self.end = end
+    def __init__(
+            self,
+            path: Union[str, Path],
+            start: Optional[int | float] = None,
+            end: Optional[int | float] = None
+        ) -> None:
+            self.path = path
+            self.start = start
+            self.end = end
 
         if self.path.endswith('.csv'):
             self.omics = self.read_omicron_csv(self.path)
@@ -35,7 +43,7 @@ class OmicronHandler:
 
             self.omics = self.query_duckdb()
 
-    def read_omicron_csv(self, csv_path):
+    def read_omicron_csv(self, csv_path: Union[str, Path]) -> pd.DataFrame:
         """
         Read Omicron triggers from a CSV file.
 
@@ -47,7 +55,7 @@ class OmicronHandler:
         """
         return pd.read_csv(csv_path)
 
-    def query_duckdb(self):
+    def query_duckdb(self) -> pd.DataFrame:
 
         con = duckdb.connect(self.path)
 
@@ -71,7 +79,7 @@ class OmicronHandler:
 
         return results_df
 
-    def apply_omicron_snr_cut(self, omicron_snr_cut=5.5):
+    def apply_omicron_snr_cut(self, omicron_snr_cut=5.5) -> None:
         """
         Apply a minimum SNR cut to the Omicron triggers.
 
@@ -81,7 +89,7 @@ class OmicronHandler:
         # mutate attr in place
         self.omics = self.omics[self.omics['snr'] >= omicron_snr_cut].copy()
 
-    def construct_omicron_start_end(self):
+    def construct_omicron_start_end(self) -> None:
         """
         Construct `tstart` and `tend` columns for the Omicron triggers.
 
@@ -102,7 +110,7 @@ class OmicronHandler:
                     self.omics['tstart'] + self.omics['duration']
                 )
 
-    def condition_omicron(self):
+    def condition_omicron(self) -> pd.DataFrame:
         """
         Apply SNR cut and compute start/end times for Omicron triggers.
 
