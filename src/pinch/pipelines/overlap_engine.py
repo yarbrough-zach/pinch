@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 import pandas as pd
+import logging
 
 from typing import Optional, Dict, List, Any, Union
 
 from intervaltree import IntervalTree
 from collections import defaultdict
 
+logger = logging.getLogger(__name__)
 
 class OverlapEngine:
     """
@@ -59,7 +61,7 @@ class OverlapEngine:
                 zip(self.gspy_triggers['tstart'], self.gspy_triggers['tend'], self.gspy_triggers['gravityspy_id'])):
 
             if idx % 1000 == 0:
-                print(idx, '/', len(self.gspy_triggers))
+                logger.info(f"Gspy Progress: {idx} / {len(self.gspy_triggers)}")
 
             case1_mask = (self.pipeline_triggers['tstart'] > window_start) & (self.pipeline_triggers['tend'] < window_end)
             case2_mask = (
@@ -126,7 +128,7 @@ class OverlapEngine:
             self.omicron_tree[row['tstart']:row['tend']] = idx
 
             if idx % 1000 == 0:
-                print(idx, '/', len(self.omicron_triggers))
+                logger.info(f"Omicron progress: {idx} / {len(self.omicron_triggers)}")
 
         trigger_glitch_map = defaultdict(list)
 
@@ -156,7 +158,7 @@ class OverlapEngine:
         ):
 
             if idx % 1000 == 0:
-                print(idx, '/', len(self.omicron_triggers))
+                logger.info(f"Omicron progress: {idx} / {len(self.omicron_triggers)}")
 
             case1_mask = (
                     (self.pipeline_triggers['tstart'] > window_start) &
