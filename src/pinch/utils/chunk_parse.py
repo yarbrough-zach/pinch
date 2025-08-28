@@ -2,7 +2,7 @@
 
 import argparse
 import pandas as pd
-
+import logging
 from typing import Tuple
 from pathlib import Path
 
@@ -55,7 +55,7 @@ class ChunkParse:
             end = chunk_dict[chunk][1]
 
         elif chunk_definition_file.endswith('.csv'):
-            print('reading csv')
+            logger.info('Reading chunk definition csv...')
             df = pd.read_csv(
                     chunk_definition_file,
                     usecols=['chunk', 'start', 'end'],
@@ -79,7 +79,7 @@ def main() -> None:
             args.chunk_definition_file
         )
 
-    print(start, end)
+    logger.info(f"chunk start and end: {start}, {end}")
 
 if __name__ == '__main__':
     main()
