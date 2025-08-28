@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import os
+from typing import List, Tuple, Union
+from pathlib import Path
 import pandas as pd
 
 
@@ -25,13 +27,18 @@ class GstlalHandler:
         condition_gstlal_triggers(): Read, filter, and compute full timing for triggers.
         return_max_start_end(): Return the minimum tstart and maximum tend for the triggers.
     """
-    def __init__(self, trigger_path, ifo, segment=False):
-        self.triggers = None
-        self.ifo = ifo
-        self.segment = segment
-        self.trigger_path = trigger_path
+    def __init__(
+            self,
+            trigger_path: Union[str, Path],
+            ifo: str,
+            segment: bool = False
+        ) -> None:
+            self.triggers = None
+            self.ifo = ifo
+            self.segment = segment
+            self.trigger_path = trigger_path
 
-    def return_gstlal_file_list(self):
+    def return_gstlal_file_list(self) -> List[str]:
         """
         Return a list of all file paths in the trigger directory.
 
@@ -43,7 +50,7 @@ class GstlalHandler:
             for f in os.listdir(self.trigger_path) if f.endswith('.csv')
         ]
 
-    def read_gstlal_csv(self, csv_path):
+        def read_gstlal_csv(self, csv_path: Union[str, path]) -> None:
         """
         Read a single GstLAL trigger CSV file.
 
@@ -52,7 +59,7 @@ class GstlalHandler:
         """
         self.triggers = pd.read_csv(csv_path)
 
-    def read_all_gstlal_csv(self):
+    def read_all_gstlal_csv(self) -> None:
         """
         Read and concatenate all CSV files in the trigger directory.
 
@@ -71,7 +78,7 @@ class GstlalHandler:
         self.triggers = pd.concat(dfs, ignore_index=True)
         self.triggers = self.triggers[self.triggers['ifo'] == self.ifo].copy()
 
-    def construct_gstlal_start_end(self):
+    def construct_gstlal_start_end(self) -> None:
         """
         Compute `tstart` and `tend` columns for each trigger.
 
@@ -86,7 +93,7 @@ class GstlalHandler:
                 self.triggers['tend'] - self.triggers['template_duration']
             )
 
-    def condition_gstlal_triggers(self):
+    def condition_gstlal_triggers(self) -> pd.DataFrame:
         """
         Load and condition all GstLAL triggers.
 
@@ -107,7 +114,7 @@ class GstlalHandler:
 
         return self.triggers
 
-    def return_max_start_end(self):
+    def return_max_start_end(self) -> Tuple[float, float]:
         """
         Return the global start and end bounds for the conditioned triggers.
 
