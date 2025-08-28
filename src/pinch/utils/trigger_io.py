@@ -3,20 +3,23 @@
 import os
 import numpy as np
 import pandas as pd
+
+from typing import Optional, Dict, List
 from collections import defaultdict
+from pathlib import Path
 
 
 class TIO:
     def __init__(
             self,
-            input_path=None,
-            output_path=None,
-    ):
+            input_path: Optional[str, Path] = None,
+            output_path: Optional[str, Path] = None,
+    ) -> None:
         self.input_path = input_path
         self.output_path = output_path
 
     @staticmethod
-    def determine_input_type(path):
+    def determine_input_type(path: str | Path) -> str:
         if os.path.isdir(path):
             return "dir"
         elif os.path.isfile(path):
@@ -25,11 +28,11 @@ class TIO:
             return "unknown"
 
     @staticmethod
-    def determine_ifos(df):
+    def determine_ifos(df: pd.DataFrame) -> np.ndarray:
         return np.unique(df['ifo'])
 
     @staticmethod
-    def multiple_ifos(df):
+    def multiple_ifos(df: pd.DataFrame) -> bool:
         """
         Determine if a given df has rows for multiple ifos
         """
@@ -42,7 +45,7 @@ class TIO:
             return False
 
     @staticmethod
-    def separate_by_ifo(df):
+    def separate_by_ifo(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """
         Return dict of triggers separated by ifo keyed by ifo
         """
@@ -51,7 +54,7 @@ class TIO:
         return {ifo: df[df['ifo'] == ifo] for ifo in ifos}
 
     @classmethod
-    def read(cls, input_path):
+    def read(cls, input_path: str | Path) -> Dict[str, pd.DataFrame]:
         path_type = cls.determine_input_type(input_path)
 
         if path_type == 'dir':
@@ -64,7 +67,7 @@ class TIO:
         return data
 
     @classmethod
-    def _read_files_in_dir(cls, path):
+    def _read_files_in_dir(cls, path: str | Path) -> Dict[str, List[pd.DataFrame]]:
         """
         Read in csv files in dir, return dict of dfs for each ifo keyed by ifo
         """
@@ -84,7 +87,7 @@ class TIO:
         return dfs
 
     @classmethod
-    def _read_file(cls, path):
+    def _read_file(cls, path: str | Path) -> Dict[str, pd.DataFrame]:
         df = pd.read_csv(path)
 
         return cls.separate_by_ifo(df)
