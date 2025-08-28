@@ -3,10 +3,12 @@
 from typing import Optional, Union
 from pathlib import Path
 
+import logging
 import argparse
 import pandas as pd
 import duckdb
 
+logger = logging.getLogger(__name__)
 
 class OmicronHandler:
     """
@@ -98,7 +100,7 @@ class OmicronHandler:
         """
 
         if 'tstart' in self.omics.columns:
-            print('tstart and tend already present...')
+            logger.info('tstart and tend already present in omicron df...')
 
         else:
 
@@ -133,7 +135,7 @@ def main():
 
     conditioned_omicron_triggers = omic_obj.condition_omicron()
 
-    print('len conditioned triggers: ', len(conditioned_omicron_triggers))
+    logger.debug(f"len conditioned triggers: {len(conditioned_omicron_triggers)}")
 
 
 if __name__ == '__main__':
