@@ -2,6 +2,10 @@
 
 import os
 import pickle as pkl
+import pandas as pd
+
+from typing import Optional, List, Union
+from pathlib import Path
 
 from sklearn.svm import OneClassSVM
 from sklearn.preprocessing import StandardScaler
@@ -30,16 +34,16 @@ class SVMClassifier:
     """
     def __init__(
             self,
-            cutoff_params=None,
-            model=None,
-            scaler=None,
-            ):
+            cutoff_params: Optional[List[str]] = None,
+            model: Optional[OneClassSVM] = None,
+            scaler: Optional[StandardScaler] = None,
+            ) -> None:
 
-        self.cutoff_params = cutoff_params or ['snr', 'chisqBysnrsq']
-        self.model = model
-        self.scaler = scaler or StandardScaler()
+            self.cutoff_params = cutoff_params or ['snr', 'chisqBysnrsq']
+            self.model = model
+            self.scaler = scaler or StandardScaler()
 
-    def compute_training_params(self, df, param):
+    def compute_training_params(self, df: pd.DataFrame, param: str) -> pd.Series:
         """
         Compute a derived parameter for feature engineering.
 
@@ -57,7 +61,7 @@ class SVMClassifier:
             return df['chisq'] / df['snr']**2
         raise ValueError(f"Unsupported param for training param: {param}")
 
-    def apply_feature_engineering(self, df):
+    def apply_feature_engineering(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Ensure required features are present in the DataFrame.
 
@@ -75,7 +79,7 @@ class SVMClassifier:
 
         return df
 
-    def train_model(self, training_df, n_samples=10000):
+    def train_model(self, training_df: pd.DataFrame, n_samples: int = 10000) -> None:
         """
         Train a one-class SVM model on a sample of the training data.
 
@@ -96,7 +100,7 @@ class SVMClassifier:
         #FIXME make nu an argument
         self.model = OneClassSVM(kernel="rbf", nu=0.01).fit(scaled_clean)
 
-    def evaluate(self, df):
+    def evaluate(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Evaluate input data using the trained model.
 
@@ -123,7 +127,7 @@ class SVMClassifier:
 
         return df
 
-    def save_model(self, path):
+    def save_model(self, path: str | Path) -> None:
         """
         Save the trained model and scaler to disk using pickle.
 
@@ -140,7 +144,12 @@ class SVMClassifier:
             )
 
     @classmethod
-    def load_model(cls, path, cutoff_params=None):
+    def load_model(
+            cls,
+            path: str | Path,
+            cutoff_params: Optional[List[str]] = None
+        ) -> 'SVMClassifier':
+
         """
         Load a model and scaler from a pickle file.
 
@@ -161,7 +170,13 @@ class SVMClassifier:
             )
 
     @classmethod
-    def train_from_data(cls, train_df, cutoff_params=None, n_samples=10000):
+    def train_from_data(
+            cls,
+            train_df: pd.DataFrame,
+            cutoff_params: Optional[List[str]],
+            n_samples: int = 10000
+        ) -> 'SVMClassifier':
+
         """
         Train a model from a given DataFrame and return the classifier instance.
 
