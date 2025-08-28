@@ -2,6 +2,11 @@
 
 import argparse
 import pandas as pd
+import logging
+from typing import Tuple
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class ChunkParse:
@@ -16,7 +21,12 @@ class ChunkParse:
             Parses the given chunk from the definition file and returns its start and end times.
     """
 
-    def parse_chunk_file(self, chunk, chunk_definition_file):
+    def parse_chunk_file(
+            self,
+            chunk: str | int,
+            chunk_definition_file: str | Path
+        ) -> Tuple[str, str]:
+
         """
         Parse the start and end time for a specified chunk from a definition file.
 
@@ -48,7 +58,7 @@ class ChunkParse:
             end = chunk_dict[chunk][1]
 
         elif chunk_definition_file.endswith('.csv'):
-            print('reading csv')
+            logger.info('Reading chunk definition csv...')
             df = pd.read_csv(
                     chunk_definition_file,
                     usecols=['chunk', 'start', 'end'],
@@ -60,8 +70,7 @@ class ChunkParse:
         return start, end
 
 
-if __name__ == '__main__':
-
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--chunk-definition-file', type=str)
     parser.add_argument('--chunk', type=str)
@@ -73,4 +82,7 @@ if __name__ == '__main__':
             args.chunk_definition_file
         )
 
-    print(start, end)
+    logger.info(f"chunk start and end: {start}, {end}")
+
+if __name__ == '__main__':
+    main()

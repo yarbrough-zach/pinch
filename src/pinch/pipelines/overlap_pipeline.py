@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
 import os
+import pandas as pd
+
+from typing import Optional, Dict, Union
+from pathlib import Path
 
 from pinch.handlers.gspy_handler import GravitySpyHandler
 from pinch.handlers.omicron_handler import OmicronHandler
@@ -33,13 +37,14 @@ class OverlapPipeline:
     """
     def __init__(
             self,
-            ifo,
-            pipeline_trigger_path,
-            output_dir,
-            gspy_enabled=False,
-            omicron_enabled=False,
-            omicron_path=None,
-    ):
+            ifo: str,
+            pipeline_trigger_path: str | Path,
+            output_dir: str | Path,
+            gspy_enabled: bool = False,
+            omicron_enabled: bool = False,
+            omicron_path: Optional[str | Path] = None,
+    ) -> None:
+
         self.ifo = ifo
         self.pipeline_trigger_path = pipeline_trigger_path
         self.output_dir = output_dir
@@ -52,25 +57,29 @@ class OverlapPipeline:
         self.omic_df = None
         self.separated_triggers = {}
 
-    def load_pipeline_triggers(self):
+    def load_pipeline_triggers(self) -> None:
         """
         Load and condition GstLAL pipeline triggers using GstlalHandler.
         """
         gstlal_handler = GstlalHandler(self.pipeline_trigger_path, self.ifo)
         self.pipeline_df = gstlal_handler.condition_gstlal_triggers()
 
-    def load_gspy_triggers(self):
+    def load_gspy_triggers(self) -> None:
         """
         Query and condition Gravity Spy triggers using the time bounds of pipeline triggers.
         """
-        gspy_handler = GravitySpyHandler(self.ifo, omicron_df=self.omic_df)
+        gspy_handler = GravitySpyHandler.from_omicron_df(
+                self.ifo,
+                omicron_df=self.omic_df,
+                margin=10.0,
+            )
 
-        gspy_handler.start = min(self.pipeline_df['tstart']) - 10
-        gspy_handler.end = max(self.pipeline_df['tstart']) + 10
+        #gspy_handler.start = min(self.pipeline_df['tstart']) - 10
+        #gspy_handler.end = max(self.pipeline_df['tstart']) + 10
 
         self.gspy_df = gspy_handler.return_gspy_events()
 
-    def load_omicron_triggers(self):
+    def load_omicron_triggers(self) -> None:
         """
         Load and condition Omicron triggers from the CSV path using OmicronHandler.
         """
@@ -81,7 +90,7 @@ class OverlapPipeline:
 
         self.omic_df = omic_handler.condition_omicron()
 
-    def run(self):
+    def run(self) -> None:
         """
         Execute the pipeline: load data, perform overlap analysis, and separate triggers.
         """
@@ -109,7 +118,7 @@ class OverlapPipeline:
 
         self.separated_triggers = engine.return_separated_triggers()
 
-    def write_output(self, separated_triggers=None):
+    def write_output(self, separated_triggers: Optional[Dict[str, pd.DataFrame]] = None) -> None:
         """
         Write separated trigger DataFrames (clean/dirty/other) to CSV files.
 

@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
 import pandas as pd
+import logging
+
+from typing import Optional, Dict, List, Any, Union
 
 from intervaltree import IntervalTree
 from collections import defaultdict
 
+logger = logging.getLogger(__name__)
 
 class OverlapEngine:
     """
@@ -31,16 +35,21 @@ class OverlapEngine:
         return_pipeline_triggers(): Return the full annotated pipeline trigger DataFrame.
     """
 
-    def __init__(self, pipeline_triggers, gspy_triggers=None, omicron_triggers=None):
-        self.pipeline_triggers = pipeline_triggers
-        self.gspy_triggers = gspy_triggers
-        self.omicron_triggers = omicron_triggers
+    def __init__(
+            self,
+            pipeline_triggers: pd.DataFrame,
+            gspy_triggers: Optional[pd.DataFrame] = None,
+            omicron_triggers: Optional[pd.DataFrame] = None
+        ) -> None:
+            self.pipeline_triggers = pipeline_triggers
+            self.gspy_triggers = gspy_triggers
+            self.omicron_triggers = omicron_triggers
 
         for col in ['glitch_id', 'omic_id']:
             if col not in self.pipeline_triggers.columns:
                 self.pipeline_triggers[col] = None
 
-    def find_gspy_overlaps_masks(self):
+    def find_gspy_overlaps_masks(self) -> None:
         """
         Annotate pipeline triggers that overlap with Gravity Spy glitches.
 
@@ -52,7 +61,7 @@ class OverlapEngine:
                 zip(self.gspy_triggers['tstart'], self.gspy_triggers['tend'], self.gspy_triggers['gravityspy_id'])):
 
             if idx % 1000 == 0:
-                print(idx, '/', len(self.gspy_triggers))
+                logger.info(f"Gspy Progress: {idx} / {len(self.gspy_triggers)}")
 
             case1_mask = (self.pipeline_triggers['tstart'] > window_start) & (self.pipeline_triggers['tend'] < window_end)
             case2_mask = (
@@ -76,7 +85,7 @@ class OverlapEngine:
 
             self.pipeline_triggers.loc[affected_indicies, 'glitch_id'] = glitch_id
 
-    def find_gspy_overlaps_tree(self):
+    def find_gspy_overlaps_tree(self) -> None:
         """
         Annotate pipeline triggers with overlapping Gravity Spy glitch IDs using an interval tree.
 
@@ -102,7 +111,7 @@ class OverlapEngine:
 
         self.pipeline_triggers['glitch_id'] = self.pipeline_triggers.index.map(lambda i: trigger_glitch_map.get(i, []))
 
-    def find_omicron_overlaps_tree(self):
+    def find_omicron_overlaps_tree(self) -> None:
         """
         Annotate pipeline triggers with overlapping Omicron glitch indices using an interval tree.
 
@@ -119,7 +128,7 @@ class OverlapEngine:
             self.omicron_tree[row['tstart']:row['tend']] = idx
 
             if idx % 1000 == 0:
-                print(idx, '/', len(self.omicron_triggers))
+                logger.info(f"Omicron progress: {idx} / {len(self.omicron_triggers)}")
 
         trigger_glitch_map = defaultdict(list)
 
@@ -132,7 +141,7 @@ class OverlapEngine:
 
         self.pipeline_triggers['omic_id'] = self.pipeline_triggers.index.map(lambda i: trigger_glitch_map.get(i, []))
 
-    def find_omicron_overlaps_masks(self):
+    def find_omicron_overlaps_masks(self) -> None:
         """
         Annotate pipeline triggers that overlap with Omicron glitches.
 
@@ -149,7 +158,7 @@ class OverlapEngine:
         ):
 
             if idx % 1000 == 0:
-                print(idx, '/', len(self.omicron_triggers))
+                logger.info(f"Omicron progress: {idx} / {len(self.omicron_triggers)}")
 
             case1_mask = (
                     (self.pipeline_triggers['tstart'] > window_start) &
@@ -177,7 +186,7 @@ class OverlapEngine:
             self.pipeline_triggers.loc[affected_indicies, 'omic_id'] = glitch_id
 
     @staticmethod
-    def ensure_list(x):
+    def ensure_list(x: Any) -> List[Any]:
 
         if isinstance(x, list):
             return x
@@ -190,7 +199,7 @@ class OverlapEngine:
 
         return [x]
 
-    def separate_triggers(self):
+    def separate_triggers(self) -> None:
         """
         Split pipeline triggers into clean, dirty, and other categories.
 
@@ -229,7 +238,7 @@ class OverlapEngine:
                 how='left'
             )
 
-    def return_separated_triggers(self):
+    def return_separated_triggers(self) -> Dict[str, pd.DataFrame]:
         """
         Return clean, dirty, and other pipeline triggers as a dictionary.
 
