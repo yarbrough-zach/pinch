@@ -1,13 +1,35 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 import os
 import argparse
+
+from dataclasses import dataclass
+from typing import Optional, Iterable, Tuple
+import pandas as pd
 
 from gwpy.table import GravitySpyTable
 
 from pinch.utils.chunk_parse import ChunkParse
 
 # export authentication for gspy database
+def _as_time_range_from_df(
+        df: pd.DataFrame,
+        col: str,
+        margin: float = 10.0
+    ) -> Tuple[float, float]:
+        if col not in df.columns or df.empty:
+            raise ValueError(f"Expected non-empty DataFrame with column '{col}'.")
+        t0 = float(df[col].min()) - margin
+        t1 = float(df[col].max()) + margin
+
+        if t0 >= t1:
+            raise ValueError(f"Bad time window: start {t0} >= end {t1}")
+
+        return t0, t1
+
+
+@dataclass
 class GravitySpyHandler:
     """
     A handler for querying and processing Gravity Spy glitch data.
@@ -37,25 +59,56 @@ class GravitySpyHandler:
         return_gspy_events():
             Query, condition, and return glitch events as a DataFrame.
     """
-    def __init__(
-        self,
-        ifo,
-        omicron_df=None,
-        t_start=None,
-        t_end=None,
-        ml_label=None,
-        confidence=0.0,
-    ):
+    ifo: str
+    t_start: int | float
+    t_end: int | float
+    omicron_df: Optional[pd.DataFrame] = None
+    ml_label: Optional[str] = None
+    confidence: float = 0.9
+   
+    def __post_init__(self) -> None:
+        if self.t_start >= self.t_end:
+            raise ValueError ("t_start must be < t_end")
+        if not (0.0 <= self.confidence <= 1):
+            raise ValueError("confidence must be between 0 and 1")
 
-        self.ifo = ifo
-        self.omicron_df = omicron_df
-        self.start = t_start
-        self.end = t_end
-        self.ml_label = ml_label
-        self.confidence = confidence
-        self.glitches = None
+    @classmethod
+    def from_time_range(
+            cls,
+            ifo: str,
+            t_start: int | float,
+            t_end: int | float,
+            *,
+            ml_label: Optional[str] = None,
+            confidence: float =  0.9,
+            omicron_df: Optional[pd.DataFrame] = None,
+        ) -> 'GravitySpyHandler':
+            t0 = float(t_start)
+            t1 = float(t_end)
+            if t0 >= t1:
+                raise ValueError(f"t_start must be < t_end")
 
-    def fetch_gravity_spy_events(self):
+            return cls(
+                    ifo=ifo, t_start=t0, t_end=t1,
+                    ml_label=ml_label, confidence=confidence, omicron_df=omicron_df)
+
+    @classmethod
+    def from_omicron_df(
+            cls,
+            ifo: str,
+            omicron_df: pd.DataFrame,
+            margin: int | float = 10,
+            *,
+            ml_label: Optional[str] = None,
+            confidence: float = 0.9,
+        ) -> 'GravitySpyHandler':
+            time_col = "tstart" if "tstart" in omicron_df.columns else "time"
+            t0, t1 = _as_time_range_from_df(omicron_df, time_col, margin=margin)
+            return cls.from_time_range(
+                    ifo=ifo, t_start=t0, t_end=t1,
+                    ml_label=ml_label, confidence=confidence, omicron_df=omicron_df)
+
+    def fetch_gravity_spy_events(self) -> pd.DataFrame:
         """
         Query the Gravity Spy database for glitches within the specified time range
         and optional class and confidence criteria.
@@ -91,14 +144,16 @@ class GravitySpyHandler:
                     ),
                 )
 
-        if not glitches:
-            raise ValueError("No glitches retured for query")
+        glitches = glitches.to_pandas()
 
-        self.glitches = glitches.to_pandas()
+        if glitches.empty:
+            raise RuntimeError("No glitches retured for gspy query")
+        
+        self.glitches = glitches
 
         return self.glitches
 
-    def construct_gspy_start_end(self):
+    def construct_gspy_start_end(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Compute `tstart` and `tend` columns for each glitch in the DataFrame.
 
@@ -109,34 +164,43 @@ class GravitySpyHandler:
         Omicron df is necessary.
         """
 
-        try:
-            self.glitches.loc[:, 'tstart'] = (
-                    self.glitches['start_time'] + 1e-9 * self.glitches['start_time_ns']
-                )
+        out = df.copy()
+        
+        # try to compute directly
+        has_direct = {"start_time", "start_time_ns", "duration"}.issubset(out.columns)
 
-            self.glitches.loc[:, 'tend'] = (
-                    self.glitches['tstart'] + self.glitches['duration']
-                )
+        if has_direct:
+            out["tstart"] = out["start_time"].astype(float) + 1e-9 * out["start_time_ns"].astype(float)
+            out["tend"] = out["tstart"] + out["duration"].astype(float)
 
-        except TypeError as e:
-            print('start_time not included, searching for data in omicron...')
+            self.glitches = out
+            return out
+        
+        # if we can't, fall back to omicron
+        if self.omicron_df is None or self.omicron_df.empty:
+            raise ValueError(
+                "Gravity Spy rows lack start_time/start_time_ns/duration; "
+                "no non-empty omicron_df was provided to compute tstart/tend."
+            )
 
-            if not len(self.omicron_df):
-                raise AttributeError("No omicron df attr provided while attempting to cross reference gravity spy triggers with omicron df")
+        o = self.omicron_df.sort_values(by=self._omic_time_col())
+        g = out.sort_values(by='event_time')
+        
+        merged = pd.merge_asof(
+                g, o, left_on="event_time", right_on=self._omic_time_col(),
+                direction="nearest", tolerance=0.05
+            )
 
-            # merge gspy and omicron dfs on time to find the tstart and tend of gspy glitch
-            print('Attempting to merge gspy and omicron...')
-            merged_df = self.glitches.merge(
-                    self.omicron_df,
-                    left_on="event_time",
-                    right_on="time",
-                    how="inner"
-                )
+        self.glitches = merged
+        return self.glitches
 
-            self.glitches = merged_df
-
-        assert 'tstart' in self.glitches.columns
+        if "tstart" not in merged.columns or "tend" not in merged.columns:
+            raise ValueError("Unable to produce 'tstart'/'tend' after omicron merge.")
+        
         print('success!')
+
+    def _omic_time_col(self) -> str:
+        return "tstart" if self.omicron_df is not None and "tstart" in self.omicron_df.columns else "time"
 
     def query_and_condition_gspy(self):
         """
@@ -144,9 +208,13 @@ class GravitySpyHandler:
 
         This combines fetching glitch data and computing additional timing fields.
         """
-        _ = self.fetch_gravity_spy_events()
+        df = self.fetch_gravity_spy_events()
+        if df.empty:
+            raise RuntimeError("gspy query returned empty df")
 
-        self.construct_gspy_start_end()
+        df = self.construct_gspy_start_end(df)
+        
+        return df
 
     def return_gspy_events(self):
         """
@@ -155,15 +223,13 @@ class GravitySpyHandler:
         Returns:
             pd.DataFrame: A DataFrame of glitches with full timing information.
         """
-        self.query_and_condition_gspy()
-
-        return self.glitches
+        return self.query_and_condition_gspy()
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', type=int, help='GPS time of query start')
-    parser.add_argument('--end', type=int, help='GPS time of query end')
+    parser.add_argument('--start', type=float, help='GPS time of query start')
+    parser.add_argument('--end', type=float, help='GPS time of query end')
     parser.add_argument('--chunk-definition-file', type=str, help='Path to file containing chunk definitions')
     parser.add_argument('--chunk', type=str)
     parser.add_argument('--ml-label', type=str, help='Label of glitch class to query, optional')
@@ -193,7 +259,7 @@ def main():
 
     glitches = gspy_events.fetch_gravity_spy_events()
 
-    glitches.to_pandas().to_csv(
+    glitches.to_csv(
             f"{args.output_path}/chunk{args.chunk}_gspy.csv"
         )
 
